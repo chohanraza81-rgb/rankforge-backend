@@ -2,7 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import axios from 'axios';
 
 dotenv.config();
@@ -12,11 +12,11 @@ app.use(express.json());
 
 // ---------- 1. Debugging ----------
 console.log("=".repeat(50));
-console.log("🚀 RankForge Backend Starting...");
+console.log("🚀 RankForge Backend Starting... (GROQ Version)");
 console.log("=".repeat(50));
-console.log("🔍 GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "✅ Set" : "❌ Missing");
-if (process.env.GEMINI_API_KEY) {
-  console.log("🔑 Key starts with:", process.env.GEMINI_API_KEY.substring(0, 8));
+console.log("🔍 GROQ_API_KEY:", process.env.GROQ_API_KEY ? "✅ Set" : "❌ Missing");
+if (process.env.GROQ_API_KEY) {
+  console.log("🔑 Key starts with:", process.env.GROQ_API_KEY.substring(0, 8));
 }
 console.log("🔍 SERPAPI_KEY:", process.env.SERPAPI_KEY ? "✅ Set" : "❌ Missing");
 console.log("🔍 MONGODB_URI:", process.env.MONGODB_URI ? "✅ Set" : "❌ Missing");
@@ -44,65 +44,68 @@ const ReportSchema = new mongoose.Schema({
 });
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 4. Gemini AI Service (FINAL WORKING VERSION) ----------
-if (!process.env.GEMINI_API_KEY) {
-  console.error("❌ Fatal Error: GEMINI_API_KEY is missing!");
+// ---------- 4. GROQ AI Service (FASTEST) ----------
+if (!process.env.GROQ_API_KEY) {
+  console.error("❌ Fatal Error: GROQ_API_KEY is missing!");
   process.exit(1);
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
-// ✅ FINAL: Using "gemini-2.0-flash-lite" (Most stable, lightweight)
-// Ye model har region mein available hai aur quota issues se bachta hai
 const generateInsights = async (keyword, serpData) => {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
-  
   const competitors = serpData.organic_results?.slice(0, 3).map((r, i) => ({
     rank: i + 1,
     title: (r.title || 'N/A').substring(0, 60),
     snippet: (r.snippet || '').substring(0, 150)
   })) || [];
 
-  console.log(`🤖 Calling Gemini for: "${keyword}"`);
+  console.log(`🤖 Calling GROQ for: "${keyword}"`);
   console.log(`📊 Analyzing ${competitors.length} competitors`);
 
   const prompt = `
-    Analyze SERP for "${keyword}". Return ONLY valid JSON:
-    {
-      "keyword_intent": "Commercial/Informational/Transactional",
-      "content_score": 85,
-      "readability_avg": "Easy/Medium/Hard",
-      "missing_headings": ["h1", "h2", "h3", "h4", "h5", "h6"],
-      "faq_questions": ["q1", "q2", "q3", "q4", "q5", "q6"],
-      "authority_links": ["link1", "link2", "link3", "link4", "link5"],
-      "competitor_table": [{"rank":1,"title":"title","strength":"strength"}]
-    }
-    Competitors: ${JSON.stringify(competitors)}
+    You are an expert SEO analyst. Analyze the SERP for keyword: "${keyword}".
+    **CRITICAL RULE: Return ONLY valid JSON. NO markdown, NO explanations, NO articles.**
+    
+    Generate a JSON object with these exact 7 keys:
+    1. "keyword_intent": "Commercial", "Informational", or "Transactional".
+    2. "content_score": (Number 0-100).
+    3. "readability_avg": "Easy", "Medium", or "Hard".
+    4. "missing_headings": Array of 6 unique sub-topics that competitors cover but a new site might miss.
+    5. "faq_questions": Array of 6 questions from "People Also Ask".
+    6. "authority_links": Array of 5 high DA (edu/gov/well-known) links to cite.
+    7. "competitor_table": Array of objects with keys "rank", "title", "strength".
+
+    Competitor Data (Top 3):
+    ${JSON.stringify(competitors, null, 2)}
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    console.log(`📝 Gemini Response: ${text.substring(0, 100)}...`);
+    const response = await groq.chat.completions.create({
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are an expert SEO analyst. Return ONLY valid JSON. No markdown, no explanations.' 
+        },
+        { 
+          role: 'user', 
+          content: prompt 
+        }
+      ],
+      model: "mixtral-8x7b-32768", // Fastest model on Groq
+      temperature: 0.3,
+      max_tokens: 2048,
+    });
+
+    const text = response.choices[0].message.content;
+    console.log(`📝 GROQ Response: ${text.substring(0, 100)}...`);
     
     const cleanJson = text.replace(/```json|```/g, '').trim();
     return JSON.parse(cleanJson);
   } catch (error) {
-    console.error('❌ Gemini Error:', error.message);
-    
-    // Handle specific errors
-    if (error.message?.includes('quota') || 
-        error.message?.includes('rate limit') ||
-        error.message?.includes('limit: 0') ||
-        error.message?.includes('Too Many Requests')) {
-      throw new Error('⚠️ Gemini API quota issue. Please:\n1. Enable Billing in Google Cloud Console\n2. Or use a fresh Gmail account with new API key\n3. Wait 1-2 hours and try again');
-    }
-    
-    if (error.message?.includes('API key not valid')) {
-      throw new Error('⚠️ Invalid Gemini API Key. Please generate a new key from Google AI Studio.');
-    }
-    
-    throw error;
+    console.error('❌ GROQ Error:', error.message);
+    throw new Error(`GROQ API Error: ${error.message}`);
   }
 };
 
@@ -210,12 +213,12 @@ app.get('/api/report/:id', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
-    message: 'RankForge Backend is Live!',
+    message: 'RankForge Backend is Live! (GROQ Version)',
     timestamp: new Date().toISOString(),
     mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-    gemini: process.env.GEMINI_API_KEY ? 'Configured' : 'Missing',
+    groq: process.env.GROQ_API_KEY ? 'Configured' : 'Missing',
     serpapi: process.env.SERPAPI_KEY ? 'Configured' : 'Missing',
-    model: 'gemini-2.0-flash-lite'
+    model: 'GROQ: mixtral-8x7b-32768'
   });
 });
 
@@ -224,7 +227,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log("=".repeat(50));
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Model: gemini-2.0-flash-lite`);
+  console.log(`📊 Model: GROQ: mixtral-8x7b-32768`);
   console.log(`✅ Health Check: /api/health`);
   console.log("=".repeat(50));
 });
