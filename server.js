@@ -12,7 +12,11 @@ app.use(express.json());
 
 // ---------- 1. Debugging ----------
 console.log("🔍 GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "✅ Set" : "❌ Missing");
+if (process.env.GEMINI_API_KEY) {
+  console.log("🔑 Key starts with:", process.env.GEMINI_API_KEY.substring(0, 8));
+}
 console.log("🔍 SERPAPI_KEY:", process.env.SERPAPI_KEY ? "✅ Set" : "❌ Missing");
+console.log("🔍 MONGODB_URI:", process.env.MONGODB_URI ? "✅ Set" : "❌ Missing");
 
 // ---------- 2. MongoDB Connection ----------
 mongoose.connect(process.env.MONGODB_URI)
@@ -37,7 +41,7 @@ const ReportSchema = new mongoose.Schema({
 });
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 4. Gemini AI Service (FASTEST) ----------
+// ---------- 4. Gemini AI Service ----------
 if (!process.env.GEMINI_API_KEY) {
   console.error("❌ Fatal Error: GEMINI_API_KEY is missing!");
   process.exit(1);
@@ -46,8 +50,8 @@ if (!process.env.GEMINI_API_KEY) {
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const generateInsights = async (keyword, serpData) => {
-  // ✅ FASTEST: gemini-2.5-flash (2x faster than 2.0-flash)
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  // ✅ FINAL: "gemini-2.5-pro" use karein (jo aapki list mein HAI)
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
   
   const competitors = serpData.organic_results?.slice(0, 3).map((r, i) => ({
     rank: i + 1,
@@ -55,7 +59,6 @@ const generateInsights = async (keyword, serpData) => {
     snippet: (r.snippet || '').substring(0, 150)
   })) || [];
 
-  // ✅ CHHOTA PROMPT (Fast response)
   const prompt = `
     Analyze SERP for "${keyword}". Return ONLY valid JSON:
     {
@@ -70,24 +73,43 @@ const generateInsights = async (keyword, serpData) => {
     Competitors: ${JSON.stringify(competitors)}
   `;
 
+  console.log(`🤖 Calling Gemini for: ${keyword}`);
   const result = await model.generateContent(prompt);
   const text = result.response.text();
+  console.log(`📝 Gemini Response: ${text.substring(0, 100)}...`);
+  
   const cleanJson = text.replace(/```json|```/g, '').trim();
   return JSON.parse(cleanJson);
 };
 
-// ---------- 5. SerpAPI Service (FASTEST: sirf 3 competitors) ----------
+// ---------- 5. SerpAPI Service ----------
 const fetchSerp = async (keyword) => {
-  const response = await axios.get('https://serpapi.com/search', {
-    params: {
-      q: keyword,
-      api_key: process.env.SERPAPI_KEY,
-      num: 3, // ✅ FAST: Sirf top 3 competitors
-      location: 'Pakistan'
-    },
-    timeout: 10000 // 10 second timeout
-  });
-  return response.data;
+  console.log(`🔍 Fetching SERP for: ${keyword}`);
+  try {
+    const response = await axios.get('https://serpapi.com/search', {
+      params: {
+        q: keyword,
+        api_key: process.env.SERPAPI_KEY,
+        num: 3,
+        location: 'Pakistan'
+      },
+      timeout: 15000
+    });
+    console.log(`✅ SERP fetched: ${response.data.organic_results?.length || 0} results`);
+    
+    if (!response.data.organic_results || response.data.organic_results.length === 0) {
+      throw new Error('No organic results found');
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('❌ SerpAPI Error:', error.message);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    throw new Error(`SerpAPI failed: ${error.message}`);
+  }
 };
 
 // ---------- 6. API Routes ----------
@@ -121,8 +143,11 @@ app.post('/api/generate', async (req, res) => {
     // Background processing
     (async () => {
       try {
+        console.log(`🔄 Starting analysis for: ${keyword}`);
+        
         const serpData = await fetchSerp(keyword);
         const insights = await generateInsights(keyword, serpData);
+        
         await Report.findByIdAndUpdate(newReport._id, {
           status: 'completed',
           data: insights
@@ -138,6 +163,7 @@ app.post('/api/generate', async (req, res) => {
     })();
 
   } catch (error) {
+    console.error('❌ Route Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -156,10 +182,15 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'RankForge Backend is Live!',
-    mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
+    mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+    gemini: process.env.GEMINI_API_KEY ? 'Configured' : 'Missing',
+    serpapi: process.env.SERPAPI_KEY ? 'Configured' : 'Missing'
   });
 });
 
 // ---------- 7. Start Server ----------
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`✅ Health Check: https://rankforge-backend-production.up.railway.app/api/health`);
+});
