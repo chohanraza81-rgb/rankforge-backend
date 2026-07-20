@@ -38,7 +38,7 @@ const ReportSchema = new mongoose.Schema({
 });
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 4. Gemini AI Service (FIXED: gemini-1.5-flash) ----------
+// ---------- 4. Gemini AI Service (FIXED: gemini-2.0-flash) ----------
 if (!process.env.GEMINI_API_KEY) {
   console.error("❌ Fatal Error: GEMINI_API_KEY is missing!");
   process.exit(1);
@@ -47,8 +47,8 @@ if (!process.env.GEMINI_API_KEY) {
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const generateInsights = async (keyword, serpData) => {
-  // ✅ FINAL FIX: "gemini-1.5-flash" use karein (sab regions mein available)
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // ✅ FINAL FIX: "gemini-2.0-flash" - Ye aapki available models mein HAI
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   
   const competitors = serpData.organic_results?.slice(0, 5).map((r, i) => ({
     rank: i + 1,
