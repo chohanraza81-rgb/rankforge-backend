@@ -7,31 +7,27 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import Groq from 'groq-sdk';
 import axios from 'axios';
-import cron from 'node-cron';
 
 dotenv.config();
 const app = express();
 
 // ---------- 1. Security & Performance ----------
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+app.options('*', cors());
+
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginOpenerPolicy: { policy: "unsafe-none" }
 }));
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
-
-const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'https://rankforge-front.vercel.app',
-  optionsSuccessStatus: 200,
-  credentials: true,
-};
-app.use(cors(corsOptions));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -43,7 +39,6 @@ app.use('/api/', limiter);
 // ---------- 2. Debugging ----------
 console.log('='.repeat(60));
 console.log('🚀 RankForge Enterprise Backend v3.5');
-console.log('📊 Features: Keyword Volume, Backlink Gap, Competitor Analysis');
 console.log('='.repeat(60));
 console.log('🔍 GROQ_API_KEY:', process.env.GROQ_API_KEY ? '✅ Set' : '❌ Missing');
 console.log('🔍 SERPAPI_KEY:', process.env.SERPAPI_KEY ? '✅ Set' : '❌ Missing');
@@ -60,14 +55,13 @@ mongoose.connect(process.env.MONGODB_URI, {
     process.exit(1);
   });
 
-// ---------- 4. MongoDB Schema (Premium) ----------
+// ---------- 4. MongoDB Schema (FIXED - Mixed types) ----------
 const ReportSchema = new mongoose.Schema({
   keyword: { type: String, required: true, index: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
   errorMessage: { type: String, default: '' },
   processingTime: { type: Number, default: 0 },
   data: {
-    // Basic Fields
     keyword_intent: String,
     content_score: Number,
     readability_avg: String,
@@ -76,7 +70,6 @@ const ReportSchema = new mongoose.Schema({
     authority_links: [String],
     competitor_table: [Object],
     
-    // Content Strategy Fields
     content_recommendations: {
       title: String,
       meta_description: String,
@@ -108,7 +101,6 @@ const ReportSchema = new mongoose.Schema({
       focus_keyword: String
     },
     
-    // 🆕 Keyword Volume Section
     keyword_volume: {
       search_volume: Number,
       keyword_difficulty: Number,
@@ -118,26 +110,11 @@ const ReportSchema = new mongoose.Schema({
       related_keywords: [String]
     },
     
-    // 🆕 Backlink Gap Section
+    // 🆕 FIXED: Mixed type for backlink_gap
     backlink_gap: {
-      competitor_backlinks: [{
-        domain: String,
-        backlink_count: Number,
-        domain_authority: Number,
-        top_links: [String]
-      }],
-      gap_opportunities: [{
-        source: String,
-        type: String,
-        reason: String,
-        priority: String
-      }],
-      backlink_recommendations: {
-        priority_links: [String],
-        strategy: String,
-        estimated_cost: String,
-        expected_impact: String
-      },
+      competitor_backlinks: [mongoose.Schema.Types.Mixed],
+      gap_opportunities: [mongoose.Schema.Types.Mixed],
+      backlink_recommendations: mongoose.Schema.Types.Mixed,
       total_backlink_opportunities: Number,
       estimated_authority_gain: String
     }
@@ -147,7 +124,6 @@ const ReportSchema = new mongoose.Schema({
 
 ReportSchema.index({ keyword: 1, createdAt: -1 });
 ReportSchema.index({ status: 1 });
-ReportSchema.index({ 'data.keyword_volume.search_volume': -1 });
 
 const Report = mongoose.model('Report', ReportSchema);
 
@@ -166,7 +142,6 @@ const fetchKeywordVolume = async (keyword) => {
   try {
     console.log(`📊 Fetching keyword volume for: "${keyword}"`);
     
-    // Use SerpAPI to get search volume data
     try {
       const response = await axios.get('https://serpapi.com/search', {
         params: {
@@ -191,7 +166,6 @@ const fetchKeywordVolume = async (keyword) => {
       console.log('SerpAPI Keyword Planner fallback, using estimation');
     }
     
-    // Fallback: Estimate based on search results
     const searchResults = await axios.get('https://serpapi.com/search', {
       params: {
         q: keyword,
@@ -240,7 +214,7 @@ const analyzeBacklinkGap = async (keyword, serpData) => {
         "domain_authority": 75,
         "top_links": ["https://link1.com", "https://link2.com"]
       }
-      2. "gap_opportunities": Array of {
+      2. "gap_opportunities": Array of objects with {
         "source": "Website name",
         "type": "Guest Post/Directory/Citation",
         "reason": "Why this is a good opportunity",
@@ -248,9 +222,9 @@ const analyzeBacklinkGap = async (keyword, serpData) => {
       }
       3. "backlink_recommendations": {
         "priority_links": ["Link 1", "Link 2"],
-        "strategy": "Detailed strategy for acquiring backlinks",
-        "estimated_cost": "Time and resources needed",
-        "expected_impact": "Expected DA/DR improvement"
+        "strategy": "Detailed strategy",
+        "estimated_cost": "Time and resources",
+        "expected_impact": "Expected DA improvement"
       }
     `;
 
@@ -272,7 +246,27 @@ const analyzeBacklinkGap = async (keyword, serpData) => {
 
     const text = response.choices[0].message.content;
     const cleanJson = text.replace(/```json|```/g, '').trim();
-    return JSON.parse(cleanJson);
+    
+    try {
+      const parsed = JSON.parse(cleanJson);
+      return parsed;
+    } catch (parseError) {
+      console.error('❌ JSON Parse Error, using fallback:', parseError.message);
+      return {
+        competitor_backlinks: [
+          { domain: 'competitor1.com', backlink_count: 45, domain_authority: 70, top_links: ['https://source1.com'] }
+        ],
+        gap_opportunities: [
+          { source: 'Industry Blog', type: 'Guest Post', reason: 'High authority in your niche', priority: 'High' }
+        ],
+        backlink_recommendations: {
+          priority_links: ['https://priority1.com'],
+          strategy: 'Focus on guest posting and broken link building',
+          estimated_cost: '10-15 hours per month',
+          expected_impact: '15-25 point DA increase'
+        }
+      };
+    }
   } catch (error) {
     console.error('❌ Backlink Analysis Error:', error.message);
     return {
@@ -304,7 +298,6 @@ const generatePremiumInsights = async (keyword, serpData) => {
   console.log(`🤖 GROQ Premium Analysis for: "${keyword}"`);
   console.log(`📊 Analyzing ${competitors.length} competitors`);
 
-  // Fetch keyword volume and backlink data in parallel
   const [volumeData, backlinkData] = await Promise.all([
     fetchKeywordVolume(keyword),
     analyzeBacklinkGap(keyword, serpData)
@@ -394,9 +387,53 @@ const generatePremiumInsights = async (keyword, serpData) => {
 
     const text = response.choices[0].message.content;
     const cleanJson = text.replace(/```json|```/g, '').trim();
-    const insights = JSON.parse(cleanJson);
     
-    // Add keyword volume and backlink data to insights
+    let insights;
+    try {
+      insights = JSON.parse(cleanJson);
+    } catch (parseError) {
+      console.error('❌ JSON Parse Error, using fallback:', parseError.message);
+      insights = {
+        keyword_intent: 'Informational',
+        content_score: 75,
+        readability_avg: 'Medium',
+        missing_headings: ['Heading 1', 'Heading 2', 'Heading 3'],
+        faq_questions: ['Question 1?', 'Question 2?'],
+        authority_links: ['https://example.com'],
+        competitor_table: [{ rank: 1, title: 'Competitor', strength: 'N/A' }],
+        content_recommendations: {
+          title: 'SEO Title',
+          meta_description: 'Meta description',
+          target_audience: 'General audience',
+          content_length: '1500-2000 words',
+          tone: 'Professional',
+          seo_tips: ['Use primary keywords', 'Add internal links']
+        },
+        competitor_analysis: {
+          top_strengths: ['Strong domain authority'],
+          top_weaknesses: ['Lack of detailed content'],
+          gap_opportunities: ['Create comprehensive guides']
+        },
+        keyword_opportunities: {
+          primary_keywords: [keyword],
+          secondary_keywords: [`best ${keyword}`, `${keyword} guide`],
+          long_tail_keywords: [`best ${keyword} for beginners`]
+        },
+        content_structure: {
+          introduction: 'Introduction paragraph',
+          main_points: ['Point 1', 'Point 2', 'Point 3'],
+          conclusion: 'Conclusion paragraph',
+          call_to_action: 'Contact us'
+        },
+        seo_metadata: {
+          title_tag: 'SEO Title',
+          meta_description: 'SEO Meta',
+          url_slug: keyword.replace(/\s+/g, '-'),
+          focus_keyword: keyword
+        }
+      };
+    }
+    
     insights.keyword_volume = {
       search_volume: volumeData.volume || 1000,
       keyword_difficulty: volumeData.difficulty || 50,
@@ -463,8 +500,6 @@ const fetchSerp = async (keyword) => {
 };
 
 // ---------- 10. API Routes ----------
-
-// GET: Health Check
 app.get('/api/health', async (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
   const totalReports = await Report.countDocuments();
@@ -487,7 +522,6 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
-// POST: Generate Report
 app.post('/api/generate', async (req, res) => {
   const { keyword } = req.body;
   if (!keyword) return res.status(400).json({ error: 'Keyword required' });
@@ -543,7 +577,6 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// GET: Report Status
 app.get('/api/report/:id', async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -554,7 +587,6 @@ app.get('/api/report/:id', async (req, res) => {
   }
 });
 
-// GET: Analytics
 app.get('/api/analytics', async (req, res) => {
   try {
     const total = await Report.countDocuments();
@@ -572,59 +604,24 @@ app.get('/api/analytics', async (req, res) => {
       { $group: { _id: null, avg: { $avg: '$data.keyword_volume.search_volume' } } }
     ]);
     
-    const recentReports = await Report.find({ status: 'completed' })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .select('keyword createdAt data.content_score data.keyword_volume.search_volume');
-    
     res.json({
       total_reports: total,
       completed_reports: completed,
       failed_reports: failed,
       pending_reports: pending,
       average_score: avgScore[0]?.avg || 0,
-      average_search_volume: avgVolume[0]?.avg || 0,
-      recent_reports: recentReports
+      average_search_volume: avgVolume[0]?.avg || 0
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// ---------- 11. Scheduled Tasks ----------
-cron.schedule('0 9 * * 1', async () => {
-  console.log('📊 Generating weekly analytics report...');
-  try {
-    const total = await Report.countDocuments();
-    const completed = await Report.countDocuments({ status: 'completed' });
-    console.log(`📊 Weekly Stats: Total: ${total}, Completed: ${completed}`);
-  } catch (error) {
-    console.error('❌ Cron Error:', error);
-  }
-});
-
-cron.schedule('0 0 * * *', async () => {
-  console.log('🗑️ Cleaning up failed reports...');
-  try {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const result = await Report.deleteMany({
-      status: 'failed',
-      createdAt: { $lt: sevenDaysAgo }
-    });
-    console.log(`🗑️ Deleted ${result.deletedCount} failed reports`);
-  } catch (error) {
-    console.error('❌ Cleanup Error:', error);
-  }
-});
-
-// ---------- 12. Start Server ----------
+// ---------- 11. Start Server ----------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log('='.repeat(60));
   console.log(`🚀 Enterprise Server v3.5 running on port ${PORT}`);
-  console.log(`📊 Models: GROQ (llama-3.3-70b-versatile)`);
-  console.log(`📈 Features: Keyword Volume, Backlink Gap, Content Strategy`);
   console.log(`✅ Health Check: /api/health`);
   console.log(`📊 Analytics: /api/analytics`);
   console.log('='.repeat(60));
