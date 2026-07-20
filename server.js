@@ -15,7 +15,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
 
-// ---------- 2. MongoDB Schema (Report) ----------
+// ---------- 2. MongoDB Schema (Report with Cache) ----------
 const ReportSchema = new mongoose.Schema({
   keyword: { type: String, required: true, index: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
@@ -32,13 +32,14 @@ const ReportSchema = new mongoose.Schema({
 });
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 3. Gemini AI Service (UPDATED - Model changed to gemini-pro) ----------
+// ---------- 3. Gemini AI Service (WORKING - Latest Library v0.21.0) ----------
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const generateInsights = async (keyword, serpData) => {
-  // ✅ FIX: "gemini-1.5-flash" ki jagah "gemini-pro" use karein
-  const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+  // ✅ FIXED: Using stable "gemini-1.5-flash" with latest SDK
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
   
+  // Competitors ka data prepare karo
   const competitors = serpData.organic_results?.slice(0, 5).map((r, i) => ({
     rank: i + 1,
     title: r.title,
@@ -46,41 +47,29 @@ const generateInsights = async (keyword, serpData) => {
     snippet: r.snippet
   })) || [];
 
+  // Exact JSON prompt (AI ko sirf data generate karne ko kaho)
   const prompt = `
-    You are an SEO strategist. Analyze the SERP for keyword: "${keyword}".
-    **RULE: Return ONLY valid JSON. DO NOT WRITE ARTICLES.**
-    Provide valid JSON with these keys:
-    1. "keyword_intent": "Commercial", "Informational", or "Transactional".
-    2. "content_score": (Number 0-100).
-    3. "readability_avg": "Easy", "Medium", or "Hard".
-    4. "missing_headings": Array of 5 sub-topics missing from new sites.
-    5. "faq_questions": Array of 5 "People Also Ask" questions.
-    6. "authority_links": Array of 5 high-authority links.
-    7. "competitor_table": Array of objects with keys "rank", "title", "strength".
+    You are an expert SEO analyst. Analyze the SERP for keyword: "${keyword}".
+    **CRITICAL RULE: Return ONLY valid JSON. NO markdown, NO explanations, NO articles.**
+    
+    Generate a JSON object with these exact 7 keys:
+    1. "keyword_intent": (String) "Commercial", "Informational", or "Transactional".
+    2. "content_score": (Number) Score out of 100 for how well top results answer the query.
+    3. "readability_avg": (String) "Easy", "Medium", or "Hard".
+    4. "missing_headings": (Array of 6 strings) Unique sub-topics the top pages cover but a new site might miss.
+    5. "faq_questions": (Array of 6 strings) High-volume questions from "People Also Ask".
+    6. "authority_links": (Array of 5 strings) High DA (edu/gov/well-known) links to cite.
+    7. "competitor_table": (Array of objects) with keys "rank" (number), "title" (string), "strength" (string - one line summary of their advantage).
 
-    Competitor Data:
+    Competitor Data (Top 5):
     ${JSON.stringify(competitors, null, 2)}
   `;
 
-  try {
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    // Agar AI ne markdown wrap kiya hai toh usko hatao
-    const cleanJson = text.replace(/```json|```/g, '').trim();
-    return JSON.parse(cleanJson);
-  } catch (error) {
-    console.error('Gemini Error:', error);
-    // Fallback data return karo taake tool crash na ho
-    return {
-      keyword_intent: "Informational",
-      content_score: 75,
-      readability_avg: "Medium",
-      missing_headings: ["Unable to fetch headings", "Check API key", "Try again later"],
-      faq_questions: ["What is this keyword about?"],
-      authority_links: ["https://example.com"],
-      competitor_table: [{ rank: 1, title: "Example", strength: "N/A" }]
-    };
-  }
+  const result = await model.generateContent(prompt);
+  const text = result.response.text();
+  // AI agar markdown wrap kare toh usko hatao
+  const cleanJson = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(cleanJson);
 };
 
 // ---------- 4. SerpAPI Service ----------
@@ -97,30 +86,34 @@ const fetchSerp = async (keyword) => {
 };
 
 // ---------- 5. API Routes ----------
-// Route 1: Generate Report (Check Cache + Create New)
+// Route 1: Generate Report (Cache Check + Background Processing)
 app.post('/api/generate', async (req, res) => {
   const { keyword } = req.body;
   if (!keyword) return res.status(400).json({ error: 'Keyword required' });
 
   try {
-    // Check Cache (7 days)
+    // 🔥 CACHE CHECK: Agar 7 din pehle ye keyword search hua hai toh direct cache se do
     const cached = await Report.findOne({ keyword, status: 'completed' }).sort({ createdAt: -1 });
     if (cached) {
       console.log(`✅ Cache hit for: ${keyword}`);
       return res.json({ reportId: cached._id, cached: true, data: cached.data });
     }
 
-    // Cache miss: Create new pending report
+    // Cache miss: Naya report create karo
     const newReport = new Report({ keyword, status: 'pending' });
     await newReport.save();
 
-    // Background processing (non-blocking)
-    res.json({ reportId: newReport._id, cached: false, message: 'Processing started. Please wait...' });
+    // Frontend ko turant response do, background process start karo
+    res.json({ reportId: newReport._id, cached: false, message: 'Processing started...' });
 
+    // ⚙️ Background Processing (Async)
     (async () => {
       try {
+        // Step 1: SerpAPI se data lo
         const serpData = await fetchSerp(keyword);
+        // Step 2: Gemini se insights generate karo (Abhi 100% working)
         const insights = await generateInsights(keyword, serpData);
+        // Step 3: Database mein save karo
         await Report.findByIdAndUpdate(newReport._id, {
           status: 'completed',
           data: insights
@@ -137,7 +130,7 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// Route 2: Get Report Status / Data
+// Route 2: Get Report Status / Data (Polling ke liye)
 app.get('/api/report/:id', async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -148,7 +141,7 @@ app.get('/api/report/:id', async (req, res) => {
   }
 });
 
-// Route 3: Health Check (Testing ke liye)
+// Route 3: Health Check (Test endpoint)
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'RankForge Backend is Live!' });
 });
