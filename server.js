@@ -11,6 +11,9 @@ app.use(cors());
 app.use(express.json());
 
 // ---------- 1. Debugging ----------
+console.log("=".repeat(50));
+console.log("🚀 RankForge Backend Starting...");
+console.log("=".repeat(50));
 console.log("🔍 GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "✅ Set" : "❌ Missing");
 if (process.env.GEMINI_API_KEY) {
   console.log("🔑 Key starts with:", process.env.GEMINI_API_KEY.substring(0, 8));
@@ -41,7 +44,7 @@ const ReportSchema = new mongoose.Schema({
 });
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 4. Gemini AI Service ----------
+// ---------- 4. Gemini AI Service (FINAL WORKING VERSION) ----------
 if (!process.env.GEMINI_API_KEY) {
   console.error("❌ Fatal Error: GEMINI_API_KEY is missing!");
   process.exit(1);
@@ -49,15 +52,19 @@ if (!process.env.GEMINI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// ✅ FINAL: Using "gemini-2.0-flash-lite" (Most stable, lightweight)
+// Ye model har region mein available hai aur quota issues se bachta hai
 const generateInsights = async (keyword, serpData) => {
-  // ✅ FINAL: "gemini-2.5-pro" use karein (jo aapki list mein HAI)
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
   
   const competitors = serpData.organic_results?.slice(0, 3).map((r, i) => ({
     rank: i + 1,
     title: (r.title || 'N/A').substring(0, 60),
     snippet: (r.snippet || '').substring(0, 150)
   })) || [];
+
+  console.log(`🤖 Calling Gemini for: "${keyword}"`);
+  console.log(`📊 Analyzing ${competitors.length} competitors`);
 
   const prompt = `
     Analyze SERP for "${keyword}". Return ONLY valid JSON:
@@ -73,18 +80,36 @@ const generateInsights = async (keyword, serpData) => {
     Competitors: ${JSON.stringify(competitors)}
   `;
 
-  console.log(`🤖 Calling Gemini for: ${keyword}`);
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-  console.log(`📝 Gemini Response: ${text.substring(0, 100)}...`);
-  
-  const cleanJson = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(cleanJson);
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    console.log(`📝 Gemini Response: ${text.substring(0, 100)}...`);
+    
+    const cleanJson = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleanJson);
+  } catch (error) {
+    console.error('❌ Gemini Error:', error.message);
+    
+    // Handle specific errors
+    if (error.message?.includes('quota') || 
+        error.message?.includes('rate limit') ||
+        error.message?.includes('limit: 0') ||
+        error.message?.includes('Too Many Requests')) {
+      throw new Error('⚠️ Gemini API quota issue. Please:\n1. Enable Billing in Google Cloud Console\n2. Or use a fresh Gmail account with new API key\n3. Wait 1-2 hours and try again');
+    }
+    
+    if (error.message?.includes('API key not valid')) {
+      throw new Error('⚠️ Invalid Gemini API Key. Please generate a new key from Google AI Studio.');
+    }
+    
+    throw error;
+  }
 };
 
 // ---------- 5. SerpAPI Service ----------
 const fetchSerp = async (keyword) => {
-  console.log(`🔍 Fetching SERP for: ${keyword}`);
+  console.log(`🔍 Fetching SERP for: "${keyword}"`);
+  
   try {
     const response = await axios.get('https://serpapi.com/search', {
       params: {
@@ -95,12 +120,12 @@ const fetchSerp = async (keyword) => {
       },
       timeout: 15000
     });
-    console.log(`✅ SERP fetched: ${response.data.organic_results?.length || 0} results`);
     
     if (!response.data.organic_results || response.data.organic_results.length === 0) {
-      throw new Error('No organic results found');
+      throw new Error('No organic results found. Try a different keyword.');
     }
     
+    console.log(`✅ SERP fetched: ${response.data.organic_results.length} results`);
     return response.data;
   } catch (error) {
     console.error('❌ SerpAPI Error:', error.message);
@@ -108,11 +133,13 @@ const fetchSerp = async (keyword) => {
       console.error('Response status:', error.response.status);
       console.error('Response data:', error.response.data);
     }
-    throw new Error(`SerpAPI failed: ${error.message}`);
+    throw new Error(`⚠️ SerpAPI failed: ${error.message}`);
   }
 };
 
 // ---------- 6. API Routes ----------
+
+// Route 1: Generate Report
 app.post('/api/generate', async (req, res) => {
   const { keyword } = req.body;
   if (!keyword) return res.status(400).json({ error: 'Keyword required' });
@@ -121,7 +148,7 @@ app.post('/api/generate', async (req, res) => {
     // Check Cache
     const cached = await Report.findOne({ keyword, status: 'completed' }).sort({ createdAt: -1 });
     if (cached) {
-      console.log(`✅ Cache hit for: ${keyword}`);
+      console.log(`✅ Cache hit for: "${keyword}"`);
       return res.json({ reportId: cached._id, cached: true, data: cached.data });
     }
 
@@ -143,7 +170,7 @@ app.post('/api/generate', async (req, res) => {
     // Background processing
     (async () => {
       try {
-        console.log(`🔄 Starting analysis for: ${keyword}`);
+        console.log(`🔄 Starting analysis for: "${keyword}"`);
         
         const serpData = await fetchSerp(keyword);
         const insights = await generateInsights(keyword, serpData);
@@ -152,9 +179,9 @@ app.post('/api/generate', async (req, res) => {
           status: 'completed',
           data: insights
         });
-        console.log(`✅ Completed: ${keyword}`);
+        console.log(`✅ Completed: "${keyword}"`);
       } catch (error) {
-        console.error(`❌ Failed: ${keyword}`, error.message);
+        console.error(`❌ Failed: "${keyword}"`, error.message);
         await Report.findByIdAndUpdate(newReport._id, { 
           status: 'failed',
           errorMessage: error.message
@@ -168,6 +195,7 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
+// Route 2: Get Report Status
 app.get('/api/report/:id', async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -178,19 +206,25 @@ app.get('/api/report/:id', async (req, res) => {
   }
 });
 
+// Route 3: Health Check
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'RankForge Backend is Live!',
+    timestamp: new Date().toISOString(),
     mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
     gemini: process.env.GEMINI_API_KEY ? 'Configured' : 'Missing',
-    serpapi: process.env.SERPAPI_KEY ? 'Configured' : 'Missing'
+    serpapi: process.env.SERPAPI_KEY ? 'Configured' : 'Missing',
+    model: 'gemini-2.0-flash-lite'
   });
 });
 
 // ---------- 7. Start Server ----------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
+  console.log("=".repeat(50));
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`✅ Health Check: https://rankforge-backend-production.up.railway.app/api/health`);
+  console.log(`📊 Model: gemini-2.0-flash-lite`);
+  console.log(`✅ Health Check: /api/health`);
+  console.log("=".repeat(50));
 });
