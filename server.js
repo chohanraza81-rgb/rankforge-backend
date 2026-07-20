@@ -47,7 +47,7 @@ if (!process.env.GEMINI_API_KEY) {
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const generateInsights = async (keyword, serpData) => {
-  // ✅ FINAL FIX: "gemini-2.0-flash" - Ye aapki available models mein HAI
+  // ✅ Using "gemini-2.0-flash" - Stable version
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   
   const competitors = serpData.organic_results?.slice(0, 5).map((r, i) => ({
