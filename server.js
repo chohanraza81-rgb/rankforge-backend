@@ -10,12 +10,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ---------- 1. MongoDB Connection ----------
+// ---------- 1. Debugging: Check API Key ----------
+console.log("🔍 Checking GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "✅ Key is set" : "❌ Key is MISSING");
+if (process.env.GEMINI_API_KEY) {
+  console.log("🔑 Key starts with:", process.env.GEMINI_API_KEY.substring(0, 8));
+}
+
+// ---------- 2. MongoDB Connection ----------
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB Error:', err));
 
-// ---------- 2. MongoDB Schema (Report with Cache) ----------
+// ---------- 3. MongoDB Schema ----------
 const ReportSchema = new mongoose.Schema({
   keyword: { type: String, required: true, index: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
@@ -32,88 +38,102 @@ const ReportSchema = new mongoose.Schema({
 });
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 3. Gemini AI Service (WORKING - Latest Library v0.21.0) ----------
+// ---------- 4. Gemini AI Service (FIXED: gemini-2.5-flash) ----------
+if (!process.env.GEMINI_API_KEY) {
+  console.error("❌ Fatal Error: GEMINI_API_KEY is missing!");
+  process.exit(1);
+}
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const generateInsights = async (keyword, serpData) => {
-  // ✅ FIXED: Using stable "gemini-1.5-flash" with latest SDK
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // ✅ Using "gemini-2.5-flash" - Stable, Fast, 1M token limit
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   
-  // Competitors ka data prepare karo
   const competitors = serpData.organic_results?.slice(0, 5).map((r, i) => ({
     rank: i + 1,
-    title: r.title,
-    link: r.link,
-    snippet: r.snippet
+    title: r.title || 'N/A',
+    link: r.link || '#',
+    snippet: r.snippet || 'No snippet available'
   })) || [];
 
-  // Exact JSON prompt (AI ko sirf data generate karne ko kaho)
   const prompt = `
     You are an expert SEO analyst. Analyze the SERP for keyword: "${keyword}".
     **CRITICAL RULE: Return ONLY valid JSON. NO markdown, NO explanations, NO articles.**
     
     Generate a JSON object with these exact 7 keys:
     1. "keyword_intent": (String) "Commercial", "Informational", or "Transactional".
-    2. "content_score": (Number) Score out of 100 for how well top results answer the query.
+    2. "content_score": (Number) Score out of 100 based on how well top results answer the query.
     3. "readability_avg": (String) "Easy", "Medium", or "Hard".
     4. "missing_headings": (Array of 6 strings) Unique sub-topics the top pages cover but a new site might miss.
-    5. "faq_questions": (Array of 6 strings) High-volume questions from "People Also Ask".
+    5. "faq_questions": (Array of 6 strings) High-volume "People Also Ask" questions.
     6. "authority_links": (Array of 5 strings) High DA (edu/gov/well-known) links to cite.
-    7. "competitor_table": (Array of objects) with keys "rank" (number), "title" (string), "strength" (string - one line summary of their advantage).
+    7. "competitor_table": (Array of objects) with keys "rank" (number), "title" (string), "strength" (string - one line summary).
 
     Competitor Data (Top 5):
     ${JSON.stringify(competitors, null, 2)}
   `;
 
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-  // AI agar markdown wrap kare toh usko hatao
-  const cleanJson = text.replace(/```json|```/g, '').trim();
-  return JSON.parse(cleanJson);
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const cleanJson = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleanJson);
+  } catch (error) {
+    console.error('❌ Gemini Error:', error.message);
+    throw error;
+  }
 };
 
-// ---------- 4. SerpAPI Service ----------
+// ---------- 5. SerpAPI Service ----------
 const fetchSerp = async (keyword) => {
-  const response = await axios.get('https://serpapi.com/search', {
-    params: {
-      q: keyword,
-      api_key: process.env.SERPAPI_KEY,
-      num: 10,
-      location: 'Pakistan'
-    }
-  });
-  return response.data;
+  try {
+    const response = await axios.get('https://serpapi.com/search', {
+      params: {
+        q: keyword,
+        api_key: process.env.SERPAPI_KEY,
+        num: 10,
+        location: 'Pakistan'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ SerpAPI Error:', error.message);
+    throw error;
+  }
 };
 
-// ---------- 5. API Routes ----------
+// ---------- 6. API Routes ----------
 // Route 1: Generate Report (Cache Check + Background Processing)
 app.post('/api/generate', async (req, res) => {
   const { keyword } = req.body;
   if (!keyword) return res.status(400).json({ error: 'Keyword required' });
 
   try {
-    // 🔥 CACHE CHECK: Agar 7 din pehle ye keyword search hua hai toh direct cache se do
+    // Check Cache (7 days)
     const cached = await Report.findOne({ keyword, status: 'completed' }).sort({ createdAt: -1 });
     if (cached) {
       console.log(`✅ Cache hit for: ${keyword}`);
       return res.json({ reportId: cached._id, cached: true, data: cached.data });
     }
 
-    // Cache miss: Naya report create karo
+    // Create new pending report
     const newReport = new Report({ keyword, status: 'pending' });
     await newReport.save();
 
-    // Frontend ko turant response do, background process start karo
+    // Send immediate response
     res.json({ reportId: newReport._id, cached: false, message: 'Processing started...' });
 
-    // ⚙️ Background Processing (Async)
+    // Background processing
     (async () => {
       try {
-        // Step 1: SerpAPI se data lo
+        // Step 1: Fetch SERP data
         const serpData = await fetchSerp(keyword);
-        // Step 2: Gemini se insights generate karo (Abhi 100% working)
+        
+        // Step 2: Generate insights with Gemini
         const insights = await generateInsights(keyword, serpData);
-        // Step 3: Database mein save karo
+        
+        // Step 3: Save to database
         await Report.findByIdAndUpdate(newReport._id, {
           status: 'completed',
           data: insights
@@ -121,16 +141,28 @@ app.post('/api/generate', async (req, res) => {
         console.log(`✅ Completed: ${keyword}`);
       } catch (error) {
         console.error(`❌ Failed: ${keyword}`, error.message);
-        await Report.findByIdAndUpdate(newReport._id, { status: 'failed' });
+        await Report.findByIdAndUpdate(newReport._id, { 
+          status: 'failed',
+          data: {
+            keyword_intent: "Error",
+            content_score: 0,
+            readability_avg: "N/A",
+            missing_headings: ["Processing failed", "Check API keys", "Try again later"],
+            faq_questions: ["API Error Occurred"],
+            authority_links: [],
+            competitor_table: []
+          }
+        });
       }
     })();
 
   } catch (error) {
+    console.error('❌ Route Error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Route 2: Get Report Status / Data (Polling ke liye)
+// Route 2: Get Report Status / Data
 app.get('/api/report/:id', async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -141,11 +173,20 @@ app.get('/api/report/:id', async (req, res) => {
   }
 });
 
-// Route 3: Health Check (Test endpoint)
+// Route 3: Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'RankForge Backend is Live!' });
+  res.json({ 
+    status: 'OK', 
+    message: 'RankForge Backend is Live!',
+    mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+    gemini: process.env.GEMINI_API_KEY ? 'Configured' : 'Missing',
+    serpapi: process.env.SERPAPI_KEY ? 'Configured' : 'Missing'
+  });
 });
 
-// ---------- 6. Start Server ----------
+// ---------- 7. Start Server ----------
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`✅ Health Check: http://localhost:${PORT}/api/health`);
+});
