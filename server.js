@@ -44,7 +44,7 @@ const ReportSchema = new mongoose.Schema({
 });
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 4. GROQ AI Service (UPDATED MODEL) ----------
+// ---------- 4. GROQ AI Service (FINAL WORKING MODELS) ----------
 if (!process.env.GROQ_API_KEY) {
   console.error("❌ Fatal Error: GROQ_API_KEY is missing!");
   process.exit(1);
@@ -93,8 +93,8 @@ const generateInsights = async (keyword, serpData) => {
           content: prompt 
         }
       ],
-      // ✅ UPDATED: Using active model
-      model: "llama-3.1-70b-versatile",
+      // ✅ FINAL: Using Llama 3.3 (Active)
+      model: "llama-3.3-70b-versatile",
       temperature: 0.3,
       max_tokens: 2048,
     });
@@ -145,21 +145,17 @@ const fetchSerp = async (keyword) => {
 };
 
 // ---------- 6. API Routes ----------
-
-// Route 1: Generate Report
 app.post('/api/generate', async (req, res) => {
   const { keyword } = req.body;
   if (!keyword) return res.status(400).json({ error: 'Keyword required' });
 
   try {
-    // Check Cache
     const cached = await Report.findOne({ keyword, status: 'completed' }).sort({ createdAt: -1 });
     if (cached) {
       console.log(`✅ Cache hit for: "${keyword}"`);
       return res.json({ reportId: cached._id, cached: true, data: cached.data });
     }
 
-    // Check pending
     const pending = await Report.findOne({ keyword, status: 'pending' });
     if (pending) {
       return res.json({ 
@@ -174,7 +170,6 @@ app.post('/api/generate', async (req, res) => {
 
     res.json({ reportId: newReport._id, cached: false, message: 'Processing...' });
 
-    // Background processing
     (async () => {
       try {
         console.log(`🔄 Starting analysis for: "${keyword}"`);
@@ -202,7 +197,6 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// Route 2: Get Report Status
 app.get('/api/report/:id', async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -213,7 +207,6 @@ app.get('/api/report/:id', async (req, res) => {
   }
 });
 
-// Route 3: Health Check
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -222,7 +215,7 @@ app.get('/api/health', (req, res) => {
     mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
     groq: process.env.GROQ_API_KEY ? 'Configured' : 'Missing',
     serpapi: process.env.SERPAPI_KEY ? 'Configured' : 'Missing',
-    model: 'GROQ: llama-3.1-70b-versatile'
+    model: 'GROQ: llama-3.3-70b-versatile'
   });
 });
 
@@ -231,7 +224,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log("=".repeat(50));
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Model: GROQ: llama-3.1-70b-versatile`);
+  console.log(`📊 Model: GROQ: llama-3.3-70b-versatile`);
   console.log(`✅ Health Check: /api/health`);
   console.log("=".repeat(50));
 });
