@@ -44,7 +44,7 @@ const ReportSchema = new mongoose.Schema({
 });
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 4. GROQ AI Service (FASTEST) ----------
+// ---------- 4. GROQ AI Service (UPDATED MODEL) ----------
 if (!process.env.GROQ_API_KEY) {
   console.error("❌ Fatal Error: GROQ_API_KEY is missing!");
   process.exit(1);
@@ -93,7 +93,8 @@ const generateInsights = async (keyword, serpData) => {
           content: prompt 
         }
       ],
-      model: "mixtral-8x7b-32768", // Fastest model on Groq
+      // ✅ UPDATED: Using active model
+      model: "llama-3.1-70b-versatile",
       temperature: 0.3,
       max_tokens: 2048,
     });
@@ -105,6 +106,9 @@ const generateInsights = async (keyword, serpData) => {
     return JSON.parse(cleanJson);
   } catch (error) {
     console.error('❌ GROQ Error:', error.message);
+    if (error.response) {
+      console.error('Response:', error.response.data);
+    }
     throw new Error(`GROQ API Error: ${error.message}`);
   }
 };
@@ -218,7 +222,7 @@ app.get('/api/health', (req, res) => {
     mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
     groq: process.env.GROQ_API_KEY ? 'Configured' : 'Missing',
     serpapi: process.env.SERPAPI_KEY ? 'Configured' : 'Missing',
-    model: 'GROQ: mixtral-8x7b-32768'
+    model: 'GROQ: llama-3.1-70b-versatile'
   });
 });
 
@@ -227,7 +231,7 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log("=".repeat(50));
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Model: GROQ: mixtral-8x7b-32768`);
+  console.log(`📊 Model: GROQ: llama-3.1-70b-versatile`);
   console.log(`✅ Health Check: /api/health`);
   console.log("=".repeat(50));
 });
