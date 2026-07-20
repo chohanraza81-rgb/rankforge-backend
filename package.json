@@ -1,6 +1,6 @@
 {
   "name": "rankforge-backend",
-  "version": "3.0.0",
+  "version": "3.5.0",
   "type": "module",
   "scripts": {
     "start": "node server.js",
