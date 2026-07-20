@@ -15,6 +15,8 @@ console.log("🔍 GEMINI_API_KEY:", process.env.GEMINI_API_KEY ? "✅ Set" : "�
 if (process.env.GEMINI_API_KEY) {
   console.log("🔑 Key starts with:", process.env.GEMINI_API_KEY.substring(0, 8));
 }
+console.log("🔍 SERPAPI_KEY:", process.env.SERPAPI_KEY ? "✅ Set" : "❌ Missing");
+console.log("🔍 MONGODB_URI:", process.env.MONGODB_URI ? "✅ Set" : "❌ Missing");
 
 // ---------- 2. MongoDB Connection ----------
 mongoose.connect(process.env.MONGODB_URI)
@@ -35,11 +37,11 @@ const ReportSchema = new mongoose.Schema({
     authority_links: [String],
     competitor_table: [Object]
   },
-  createdAt: { type: Date, default: Date.now, expires: 604800 }
+  createdAt: { type: Date, default: Date.now, expires: 604800 } // 7 din cache
 });
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 4. Gemini AI Service (WITH RATE LIMIT HANDLING) ----------
+// ---------- 4. Gemini AI Service ----------
 if (!process.env.GEMINI_API_KEY) {
   console.error("❌ Fatal Error: GEMINI_API_KEY is missing!");
   process.exit(1);
@@ -47,10 +49,10 @@ if (!process.env.GEMINI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Rate Limit Tracking
+// Rate Limit Tracking (Free tier: 2 requests per minute)
 let requestCount = 0;
 let lastResetTime = Date.now();
-const MAX_REQUESTS_PER_MINUTE = 2; // Gemini free tier limit
+const MAX_REQUESTS_PER_MINUTE = 2;
 const RETRY_DELAY = 60000; // 60 seconds
 
 const checkRateLimit = () => {
@@ -68,20 +70,21 @@ const checkRateLimit = () => {
 };
 
 const generateInsights = async (keyword, serpData, retryCount = 0) => {
-  // ✅ Check rate limit before making request
+  // Check rate limit before making request
   const waitTime = checkRateLimit();
   if (waitTime > 0) {
     console.log(`⏳ Waiting ${Math.ceil(waitTime/1000)}s before next request...`);
     await new Promise(resolve => setTimeout(resolve, waitTime + 1000));
   }
 
+  // ✅ Using gemini-2.0-flash (available in your region)
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
   
   const competitors = serpData.organic_results?.slice(0, 5).map((r, i) => ({
     rank: i + 1,
     title: r.title || 'N/A',
     link: r.link || '#',
-    snippet: r.snippet || 'No snippet available'
+    snippet: (r.snippet || '').substring(0, 200) // Trim long snippets
   })) || [];
 
   const prompt = `
@@ -102,7 +105,6 @@ const generateInsights = async (keyword, serpData, retryCount = 0) => {
   `;
 
   try {
-    // Track request
     requestCount++;
     console.log(`📊 Request ${requestCount}/${MAX_REQUESTS_PER_MINUTE} this minute`);
     
@@ -117,7 +119,8 @@ const generateInsights = async (keyword, serpData, retryCount = 0) => {
     // Check if it's a quota/rate limit error
     if (error.message?.includes('quota') || 
         error.message?.includes('rate limit') ||
-        error.message?.includes('429')) {
+        error.message?.includes('429') ||
+        error.message?.includes('Resource has been exhausted')) {
       
       if (retryCount < 3) {
         const waitTime = (retryCount + 1) * 30; // 30s, 60s, 90s
@@ -134,31 +137,36 @@ const generateInsights = async (keyword, serpData, retryCount = 0) => {
   }
 };
 
-// ---------- 5. SerpAPI Service ----------
+// ---------- 5. SerpAPI Service (FASTER: num:5 instead of 10) ----------
 const fetchSerp = async (keyword) => {
   try {
+    console.log(`🔍 Fetching SERP data for: ${keyword}`);
     const response = await axios.get('https://serpapi.com/search', {
       params: {
         q: keyword,
         api_key: process.env.SERPAPI_KEY,
-        num: 10,
+        num: 5, // ✅ REDUCED: 5 competitors only for faster response
         location: 'Pakistan'
-      }
+      },
+      timeout: 15000 // 15 second timeout
     });
+    console.log(`✅ SERP data fetched for: ${keyword}`);
     return response.data;
   } catch (error) {
     console.error('❌ SerpAPI Error:', error.message);
-    throw new Error('⚠️ SerpAPI failed. Please check your API key.');
+    throw new Error('⚠️ SerpAPI failed. Please check your API key or try again later.');
   }
 };
 
 // ---------- 6. API Routes ----------
+
+// Route 1: Generate Report (Cache Check + Background Processing)
 app.post('/api/generate', async (req, res) => {
   const { keyword } = req.body;
   if (!keyword) return res.status(400).json({ error: 'Keyword required' });
 
   try {
-    // Check Cache
+    // Check Cache (7 days)
     const cached = await Report.findOne({ keyword, status: 'completed' }).sort({ createdAt: -1 });
     if (cached) {
       console.log(`✅ Cache hit for: ${keyword}`);
@@ -175,16 +183,25 @@ app.post('/api/generate', async (req, res) => {
       });
     }
 
+    // Create new pending report
     const newReport = new Report({ keyword, status: 'pending' });
     await newReport.save();
 
+    // Send immediate response
     res.json({ reportId: newReport._id, cached: false, message: 'Processing started...' });
 
-    // Background processing
+    // Background processing (non-blocking)
     (async () => {
       try {
+        console.log(`🔄 Starting analysis for: ${keyword}`);
+        
+        // Step 1: Fetch SERP data
         const serpData = await fetchSerp(keyword);
+        
+        // Step 2: Generate insights with Gemini
         const insights = await generateInsights(keyword, serpData);
+        
+        // Step 3: Save to database
         await Report.findByIdAndUpdate(newReport._id, {
           status: 'completed',
           data: insights,
@@ -206,6 +223,7 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
+// Route 2: Get Report Status / Data (Polling ke liye)
 app.get('/api/report/:id', async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -216,6 +234,7 @@ app.get('/api/report/:id', async (req, res) => {
   }
 });
 
+// Route 3: Health Check (Testing ke liye)
 app.get('/api/health', (req, res) => {
   const now = Date.now();
   const timeSinceReset = Math.floor((now - lastResetTime) / 1000);
@@ -231,8 +250,9 @@ app.get('/api/health', (req, res) => {
       requests_this_minute: requestCount,
       max_per_minute: MAX_REQUESTS_PER_MINUTE,
       remaining: remainingRequests,
-      reset_in_seconds: 60 - timeSinceReset
-    }
+      reset_in_seconds: Math.max(0, 60 - timeSinceReset)
+    },
+    version: '2.0.0'
   });
 });
 
@@ -241,4 +261,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Rate Limit: ${MAX_REQUESTS_PER_MINUTE} requests per minute`);
+  console.log(`✅ Health Check: https://rankforge-backend-production.up.railway.app/api/health`);
 });
