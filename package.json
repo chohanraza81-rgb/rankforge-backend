@@ -1,6 +1,6 @@
 {
   "name": "rankforge-backend",
-  "version": "3.5.0",
+  "version": "4.0.0",
   "type": "module",
   "scripts": {
     "start": "node server.js",
@@ -16,7 +16,8 @@
     "helmet": "^7.0.0",
     "compression": "^1.7.4",
     "express-rate-limit": "^7.0.0",
-    "node-cron": "^3.0.0"
+    "node-cron": "^3.0.0",
+    "winston": "^3.11.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.0"
