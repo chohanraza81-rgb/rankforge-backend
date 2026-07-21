@@ -52,7 +52,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Rate Limiting (FIXED for Railway)
+// Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -69,7 +69,7 @@ app.use('/api/', limiter);
 
 // ---------- 3. Startup Logging ----------
 logger.info('='.repeat(60));
-logger.info('🚀 RankForge ULTIMATE POWER EDITION V7');
+logger.info('🚀 RankForge ULTIMATE POWER EDITION V7 - REAL COMPETITORS');
 logger.info('='.repeat(60));
 logger.info(`🔍 GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✅ Set' : '❌ Missing'}`);
 logger.info(`🔍 SERPAPI_KEY: ${process.env.SERPAPI_KEY ? '✅ Set' : '❌ Missing'}`);
@@ -86,7 +86,7 @@ mongoose.connect(process.env.MONGODB_URI, {
     process.exit(1);
   });
 
-// ---------- 5. MongoDB Schema (ULTIMATE POWER EDITION) ----------
+// ---------- 5. MongoDB Schema ----------
 const ReportSchema = new mongoose.Schema({
   keyword: { type: String, required: true, index: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
@@ -296,6 +296,8 @@ const Report = mongoose.model('Report', ReportSchema);
 
 // ---------- 6. DATA SANITIZER ----------
 const sanitizeData = (rawData) => {
+  const keyword = rawData.keyword || 'this product';
+  
   const defaultData = {
     keyword_intent: 'Informational',
     content_score: 75,
@@ -303,16 +305,13 @@ const sanitizeData = (rawData) => {
     missing_headings: ['Top Brands in 2026', 'Best Value for Money', 'Features Comparison', 'User Reviews', 'Buying Guide'],
     faq_questions: [],
     authority_links: ['https://www.techradar.com', 'https://www.cnet.com', 'https://www.pcmag.com'],
-    competitor_table: [
-      { rank: 1, title: 'Competitor 1', strength: 'Best features' },
-      { rank: 2, title: 'Competitor 2', strength: 'Best value' }
-    ],
+    competitor_table: [],
     
     search_intent_analysis: { 
       intent_type: 'Informational', 
       confidence_score: 75, 
       sub_intents: ['Compare', 'Research'], 
-      user_goal: 'To find the best smartwatch', 
+      user_goal: `To find the best ${keyword}`, 
       buyer_stage: 'Research', 
       content_type: 'Review/Guide' 
     },
@@ -320,7 +319,7 @@ const sanitizeData = (rawData) => {
     full_serp_analysis: { 
       total_results: 0, 
       organic_results: [], 
-      featured_snippet: 'Find the best smartwatches with expert reviews', 
+      featured_snippet: `Find the best ${keyword} with expert reviews`, 
       knowledge_panel: '', 
       top_stories: [], 
       videos: [], 
@@ -332,20 +331,20 @@ const sanitizeData = (rawData) => {
     },
     
     nlp_entity_extraction: { 
-      entities: [{ name: 'Smartwatch', type: 'Product', salience: 0.85 }], 
-      key_phrases: ['best smartwatch', 'student smartwatch', 'affordable smartwatch'], 
+      entities: [], 
+      key_phrases: [`best ${keyword}`, `affordable ${keyword}`], 
       sentiment_score: 0.75, 
       language: 'en', 
-      topics: ['Technology', 'Wearables'] 
+      topics: ['Reviews', 'Buying Guide'] 
     },
     
     topical_authority_map: { 
-      core_topics: [{ topic: 'Smartwatch Reviews', authority_score: 75, coverage_score: 70, gap_score: 30, recommendations: ['Create more content'] }], 
-      topic_clusters: [{ cluster_name: 'Wearable Technology', keywords: ['smartwatch', 'fitness tracker', 'wearable'], priority: 'High' }], 
-      content_hubs: ['Tech Reviews', 'Buying Guides'] 
+      core_topics: [{ topic: `${keyword} Reviews`, authority_score: 75, coverage_score: 70, gap_score: 30, recommendations: ['Create more content'] }], 
+      topic_clusters: [{ cluster_name: 'Product Reviews', keywords: [`${keyword}`, 'buying guide', 'comparison'], priority: 'High' }], 
+      content_hubs: ['Expert Reviews', 'Buying Guides'] 
     },
     
-    internal_links: [{ anchor_text: 'Best Tech 2026', target_url: '/best-tech-2026', relevance_score: 85, context: 'Tech guide', page_type: 'Blog' }],
+    internal_links: [{ anchor_text: 'Best Products 2026', target_url: '/best-products-2026', relevance_score: 85, context: 'Product guide', page_type: 'Blog' }],
     
     eeat_score: { 
       experience: 70, 
@@ -359,8 +358,8 @@ const sanitizeData = (rawData) => {
     
     featured_snippet_opportunities: { 
       eligibility_score: 75, 
-      current_snippet: 'Top smartwatches for students in 2026', 
-      competitor_snippets: ['Best smartwatch for students', 'Top 10 smartwatches'], 
+      current_snippet: `Top ${keyword} in 2026`, 
+      competitor_snippets: [], 
       optimization_tips: ['Use bullet points', 'Add price ranges'], 
       format_type: 'List', 
       priority: 'High' 
@@ -370,34 +369,34 @@ const sanitizeData = (rawData) => {
       visibility_score: 70, 
       optimization_tips: ['Use structured data', 'Answer questions clearly'], 
       structure_recommendations: ['Use H2 headings', 'Include FAQ'], 
-      question_coverage: ['What is the best smartwatch?', 'Which smartwatch is affordable?'], 
+      question_coverage: [`What is the best ${keyword}?`, `Which ${keyword} is affordable?`], 
       featured_criteria: ['Clear answers', 'Structured content'] 
     },
     
     people_also_ask_expanded: [{ 
-      question: 'What is the best smartwatch for students?', 
-      answer: 'The best smartwatch for students depends on budget and features.', 
+      question: `What is the best ${keyword}?`, 
+      answer: `The best ${keyword} depends on your needs and budget.`, 
       difficulty: 'Medium', 
-      related_questions: ['Which smartwatch has long battery life?'], 
+      related_questions: [`Which ${keyword} has good value?`], 
       source: 'Google PAA' 
     }],
     
     content_brief: { 
-      title: 'Best Smartwatches for Students in 2026: Complete Guide', 
-      meta_description: 'Find the best smartwatches for students with expert reviews, comparison, and buying guide.', 
-      target_audience: 'Students looking for smartwatches', 
-      content_goal: 'Help students choose the right smartwatch', 
-      h2_headings: [{ heading: 'Top Smartwatch Brands', key_points: ['Apple', 'Samsung', 'Fitbit'], word_count: 300, priority: 'High' }], 
-      h3_subheadings: [{ heading: 'Apple Watch Features', context: 'Apple Watch review', keywords: ['Apple', 'smartwatch'] }], 
+      title: `Best ${keyword}: Complete Guide 2026`, 
+      meta_description: `Find the best ${keyword} with expert reviews, comparison, and buying guide.`, 
+      target_audience: `Users looking for ${keyword}`, 
+      content_goal: `Help users choose the right ${keyword}`, 
+      h2_headings: [{ heading: 'Top Brands', key_points: ['Brand 1', 'Brand 2', 'Brand 3'], word_count: 300, priority: 'High' }], 
+      h3_subheadings: [{ heading: 'Key Features', context: 'Features overview', keywords: ['features', 'specifications'] }], 
       word_count_recommendation: 2500, 
       recommended_sections: ['Introduction', 'Top Picks', 'Comparison', 'Buying Guide'] 
     },
     
     schema_generator: { 
-      faq: '<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage"}</script>', 
-      product: '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product"}</script>', 
-      article: '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article"}</script>', 
-      complete_json: '{"@context":"https://schema.org","@type":"Article","headline":"Best Smartwatches 2026"}' 
+      faq: `<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage"}</script>`, 
+      product: `<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product"}</script>`, 
+      article: `<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article"}</script>`, 
+      complete_json: `{"@context":"https://schema.org","@type":"Article","headline":"Best ${keyword} 2026"}` 
     },
     
     keyword_cannibalization: { 
@@ -408,8 +407,8 @@ const sanitizeData = (rawData) => {
     },
     
     brand_backlink_analysis: { 
-      brand_mentions: [{ source: 'TechRadar', sentiment: 'Positive' }], 
-      backlink_gap: [{ competitor: 'CNET', backlinks: 1200, missing_links: [], opportunity_score: 80 }], 
+      brand_mentions: [], 
+      backlink_gap: [], 
       total_opportunities: 10 
     },
     
@@ -418,24 +417,24 @@ const sanitizeData = (rawData) => {
       last_updated: '2026-01-01', 
       outdated_sections: ['Prices'], 
       update_recommendations: [{ section: 'Prices', reason: 'Need latest prices', priority: 'High', suggested_updates: ['Add current prices'] }], 
-      trending_topics: ['Affordable smartwatches', 'Fitness trackers'] 
+      trending_topics: ['New Models', 'Best Value'] 
     },
     
     seo_metadata: { 
-      title_tag: '', 
-      meta_description: '', 
-      url_slug: '', 
-      focus_keyword: '', 
-      h1_tag: '', 
+      title_tag: `Best ${keyword}: Complete Guide & Reviews 2026`, 
+      meta_description: `Find the best ${keyword} with expert reviews, comparison tables, and buying guide.`, 
+      url_slug: `best-${keyword.toLowerCase().replace(/\\s+/g, '-')}`, 
+      focus_keyword: keyword, 
+      h1_tag: `Best ${keyword}: Complete Buying Guide`, 
       seo_grade: 'B', 
       readability_score: 70, 
       keyword_density: 1.2 
     },
     
     content_recommendations: { 
-      title: '', 
-      meta_description: '', 
-      target_audience: '', 
+      title: `Best ${keyword}: Complete Buying Guide 2026`, 
+      meta_description: `Find the best ${keyword} with expert reviews and comparison.`, 
+      target_audience: `Users looking for the best ${keyword}`, 
       content_length: '2000-2500 words', 
       tone: 'Professional and informative', 
       seo_tips: ['Use comparison tables', 'Include user reviews', 'Add video content'] 
@@ -453,13 +452,13 @@ const sanitizeData = (rawData) => {
       growth: '15%', 
       seasonality: 'Peak in Q3 and Q4', 
       peak_months: ['August', 'September', 'December'], 
-      strategy: 'Create content before back-to-school season' 
+      strategy: 'Create content before peak season' 
     },
     
     pricing_intelligence: { 
       average_price: '$200 - $400', 
       price_range: '$100 - $600', 
-      value_for_money: 'Mid-range smartwatches offer best value' 
+      value_for_money: 'Mid-range offers best value' 
     },
     
     content_requirements: { 
@@ -476,12 +475,12 @@ const sanitizeData = (rawData) => {
       difficulty: 45, 
       cpc: 1.5, 
       competition: 'Medium', 
-      related_keywords: ['best smartwatch', 'student smartwatch', 'affordable smartwatch', 'fitness tracker'] 
+      related_keywords: [`best ${keyword}`, `affordable ${keyword}`, `${keyword} review`] 
     },
     
     backlink_gap: { 
-      competitor_backlinks: [{ domain: 'techradar.com', backlinks: 1200, da: 85 }], 
-      backlink_opportunities: ['Guest post on tech blogs', 'Resource page on fitness websites'], 
+      competitor_backlinks: [], 
+      backlink_opportunities: ['Guest post on relevant blogs', 'Resource page on authority sites'], 
       backlink_strategy: 'Create high-quality content and reach out', 
       cost: '10 hours + outreach', 
       impact: '15-25 points', 
@@ -496,7 +495,6 @@ const sanitizeData = (rawData) => {
       if (key === 'faq_questions') {
         if (Array.isArray(rawData[key])) {
           const existing = rawData[key].filter(q => typeof q === 'string' && q.trim().length > 0);
-          const keyword = rawData.keyword || 'this product';
           const defaultFAQs = [
             `What is the best ${keyword}?`,
             `Which ${keyword} has the best features?`,
@@ -509,6 +507,11 @@ const sanitizeData = (rawData) => {
           }
           sanitized.faq_questions = filled.slice(0, 4);
         }
+        continue;
+      }
+
+      if (key === 'competitor_table' && Array.isArray(rawData[key]) && rawData[key].length > 0) {
+        sanitized.competitor_table = rawData[key].filter(c => c && typeof c === 'object');
         continue;
       }
 
@@ -527,42 +530,36 @@ const sanitizeData = (rawData) => {
         continue;
       }
 
+      if (key === 'full_serp_analysis' && typeof rawData[key] === 'object') {
+        sanitized.full_serp_analysis = { ...defaultData.full_serp_analysis, ...rawData[key] };
+        continue;
+      }
+
+      if (key === 'nlp_entity_extraction' && typeof rawData[key] === 'object') {
+        sanitized.nlp_entity_extraction = { ...defaultData.nlp_entity_extraction, ...rawData[key] };
+        continue;
+      }
+
+      if (key === 'topical_authority_map' && typeof rawData[key] === 'object') {
+        sanitized.topical_authority_map = { ...defaultData.topical_authority_map, ...rawData[key] };
+        continue;
+      }
+
+      if (key === 'eeat_score' && typeof rawData[key] === 'object') {
+        sanitized.eeat_score = { ...defaultData.eeat_score, ...rawData[key] };
+        continue;
+      }
+
       if (typeof rawData[key] === 'object' && rawData[key] !== null && !Array.isArray(rawData[key])) {
         sanitized[key] = { ...defaultData[key], ...rawData[key] };
-      } else if (Array.isArray(rawData[key])) {
+      } else if (Array.isArray(rawData[key]) && rawData[key].length > 0) {
         sanitized[key] = rawData[key];
-      } else if (typeof rawData[key] === 'string' || typeof rawData[key] === 'number' || typeof rawData[key] === 'boolean') {
+      } else if (typeof rawData[key] === 'string' && rawData[key].trim().length > 0) {
+        sanitized[key] = rawData[key];
+      } else if (typeof rawData[key] === 'number') {
         sanitized[key] = rawData[key];
       }
     }
-  }
-
-  // Generate SEO metadata from keyword
-  const keyword = rawData.keyword || 'this product';
-  if (!sanitized.seo_metadata.title_tag) {
-    sanitized.seo_metadata.title_tag = `Best ${keyword}: Complete Guide & Reviews 2026`;
-  }
-  if (!sanitized.seo_metadata.meta_description) {
-    sanitized.seo_metadata.meta_description = `Find the best ${keyword} with expert reviews, comparison tables, and buying guide. Top picks for 2026.`;
-  }
-  if (!sanitized.seo_metadata.url_slug) {
-    sanitized.seo_metadata.url_slug = `best-${keyword.toLowerCase().replace(/\s+/g, '-')}`;
-  }
-  if (!sanitized.seo_metadata.focus_keyword) {
-    sanitized.seo_metadata.focus_keyword = keyword;
-  }
-  if (!sanitized.seo_metadata.h1_tag) {
-    sanitized.seo_metadata.h1_tag = `Best ${keyword}: Complete Buying Guide`;
-  }
-  
-  if (!sanitized.content_recommendations.title) {
-    sanitized.content_recommendations.title = `Best ${keyword}: Complete Buying Guide 2026`;
-  }
-  if (!sanitized.content_recommendations.meta_description) {
-    sanitized.content_recommendations.meta_description = `Find the best ${keyword} with expert reviews, comparison tables, and buying guide.`;
-  }
-  if (!sanitized.content_recommendations.target_audience) {
-    sanitized.content_recommendations.target_audience = `Users looking for the best ${keyword}`;
   }
 
   if (!sanitized.faq_questions || sanitized.faq_questions.length < 4) {
@@ -587,190 +584,74 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-const ultraCompressCompetitors = (competitors) => {
-  return (competitors || []).slice(0, 5).map((r, i) => ({
-    r: i + 1,
-    t: (r.title || '').substring(0, 50),
-    s: (r.snippet || '').substring(0, 100),
-    d: r.link ? new URL(r.link).hostname.replace('www.', '') : ''
-  }));
-};
-
-const ultraCompressPAA = (paaData) => {
-  return (paaData || []).slice(0, 3).map(p => ({
-    q: (p.question || '').substring(0, 60),
-    a: (p.snippet || '').substring(0, 80)
-  }));
-};
-
 const generateUltimateInsights = async (keyword, serpData) => {
-  const competitors = ultraCompressCompetitors(serpData.organic_results);
-  const paa = ultraCompressPAA(serpData.people_also_ask);
-  const related = (serpData.related_searches || []).slice(0, 3).map(r => r.query || '');
-  
-  const features = {
-    fs: (serpData.organic_results?.[0]?.snippet || '').substring(0, 100),
-    kp: (serpData.knowledge_graph?.name || ''),
-    ts: (serpData.top_stories || []).slice(0, 2).map(s => s.title || '')
+  // Extract REAL competitors from SERP data
+  const realCompetitors = (serpData.organic_results || []).slice(0, 5).map((r, i) => ({
+    rank: i + 1,
+    title: (r.title || 'N/A').substring(0, 80),
+    snippet: (r.snippet || '').substring(0, 150),
+    link: r.link || '#',
+    domain: r.link ? new URL(r.link).hostname.replace('www.', '') : ''
+  }));
+
+  // Extract People Also Ask
+  const paa = (serpData.people_also_ask || []).slice(0, 4).map(p => ({
+    question: p.question || '',
+    answer: (p.snippet || '').substring(0, 150)
+  }));
+
+  // Extract Related Searches
+  const relatedSearches = (serpData.related_searches || []).slice(0, 5).map(r => r.query || '');
+
+  // Extract SERP features
+  const serpFeatures = {
+    featured_snippet: serpData.organic_results?.[0]?.snippet || '',
+    knowledge_panel: serpData.knowledge_graph?.name || '',
+    top_stories: (serpData.top_stories || []).slice(0, 3).map(s => s.title || ''),
+    videos: (serpData.video_results || []).slice(0, 3).map(v => v.title || ''),
+    images: (serpData.images_results || []).slice(0, 3).map(i => i.title || ''),
   };
 
   logger.info(`🤖 GROQ Analysis for: "${keyword}"`);
+  logger.info(`📊 ${realCompetitors.length} Real Competitors Found`);
 
   const prompt = `
-    SEO Expert. Analyze "${keyword}". Return ONLY valid JSON.
+    You are an SEO Expert. Analyze keyword: "${keyword}" using the REAL SERP data provided.
 
-    Competitors: ${JSON.stringify(competitors)}
-    PAA: ${JSON.stringify(paa)}
-    Related: ${JSON.stringify(related)}
-    SERP Features: ${JSON.stringify(features)}
+    **REAL COMPETITORS FROM SERP (Top 5):**
+    ${JSON.stringify(realCompetitors, null, 2)}
 
-    CRITICAL RULES:
-    1. "faq_questions" MUST have EXACTLY 4 questions. No more, no less.
-    2. "missing_headings" must have AT LEAST 5 headings.
-    3. "authority_links" must have AT LEAST 3 links.
-    4. Generate all 14 features with quality data.
-    5. For SEO metadata, create relevant title, description, slug, and focus keyword based on the keyword.
+    **PEOPLE ALSO ASK:**
+    ${JSON.stringify(paa, null, 2)}
 
-    Generate COMPLETE JSON:
-    {
-      "keyword_intent": "Informational",
-      "content_score": 80,
-      "readability_avg": "Medium",
-      "missing_headings": ["Heading 1", "Heading 2", "Heading 3", "Heading 4", "Heading 5"],
-      "faq_questions": ["Q1?", "Q2?", "Q3?", "Q4?"],
-      "authority_links": ["https://link1.com", "https://link2.com", "https://link3.com"],
-      
-      "competitor_table": [
-        {"rank": 1, "title": "Competitor 1", "strength": "Main advantage"},
-        {"rank": 2, "title": "Competitor 2", "strength": "Main advantage"}
-      ],
-      
-      "search_intent_analysis": {
-        "intent_type": "Informational",
-        "confidence_score": 85,
-        "sub_intents": ["Compare", "Research"],
-        "user_goal": "To find the best options",
-        "buyer_stage": "Research",
-        "content_type": "Review/Comparison Guide"
-      },
-      
-      "full_serp_analysis": {
-        "total_results": 500000,
-        "organic_results": [],
-        "featured_snippet": "Featured snippet content",
-        "serp_features": ["Featured Snippet", "People Also Ask"]
-      },
-      
-      "nlp_entity_extraction": {
-        "entities": [{"name": "Brand", "type": "Organization", "salience": 0.85}],
-        "key_phrases": ["key phrase 1", "key phrase 2"],
-        "sentiment_score": 0.75,
-        "language": "en",
-        "topics": ["Topic 1", "Topic 2"]
-      },
-      
-      "topical_authority_map": {
-        "core_topics": [{"topic": "Topic 1", "authority_score": 85, "coverage_score": 75, "gap_score": 25, "recommendations": ["Create more content"]}],
-        "topic_clusters": [{"cluster_name": "Cluster 1", "keywords": ["kw1", "kw2"], "priority": "High"}],
-        "content_hubs": ["Hub 1", "Hub 2"]
-      },
-      
-      "internal_links": [{"anchor_text": "Link 1", "target_url": "/page1", "relevance_score": 85, "context": "Context", "page_type": "Blog"}],
-      
-      "eeat_score": {
-        "experience": 75,
-        "expertise": 80,
-        "authoritativeness": 70,
-        "trustworthiness": 75,
-        "overall_score": 75,
-        "grade": "B",
-        "recommendations": ["Add expert opinions", "Cite sources"]
-      },
-      
-      "featured_snippet_opportunities": {
-        "eligibility_score": 80,
-        "current_snippet": "Current snippet",
-        "optimization_tips": ["Use bullet points", "Add clear answers"],
-        "format_type": "List",
-        "priority": "High"
-      },
-      
-      "ai_overview_optimization": {
-        "visibility_score": 70,
-        "optimization_tips": ["Use structured data", "Answer questions clearly"],
-        "structure_recommendations": ["Use H2 headings", "Include FAQ"],
-        "question_coverage": ["Question 1", "Question 2"],
-        "featured_criteria": ["Clear answers", "Structured content"]
-      },
-      
-      "people_also_ask_expanded": [
-        {"question": "Q1?", "answer": "Answer 1", "difficulty": "Medium", "related_questions": ["Related 1"], "source": "Google PAA"}
-      ],
-      
-      "content_brief": {
-        "title": "Best ${keyword}: Complete Guide",
-        "meta_description": "Find the best ${keyword} with expert reviews and comparison",
-        "target_audience": "Users looking for ${keyword}",
-        "content_goal": "Help users make informed decisions",
-        "h2_headings": [{"heading": "Top Brands", "key_points": ["Point 1", "Point 2"], "word_count": 300, "priority": "High"}],
-        "h3_subheadings": [{"heading": "Sub-heading 1", "context": "Context", "keywords": ["kw1", "kw2"]}],
-        "word_count_recommendation": 2500,
-        "recommended_sections": ["Introduction", "Top Picks", "Comparison", "Buying Guide"]
-      },
-      
-      "schema_generator": {
-        "faq": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"FAQPage\"}</script>",
-        "product": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\"}</script>",
-        "article": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Article\"}</script>",
-        "complete_json": "{\"@context\":\"https://schema.org\",\"@type\":\"Article\",\"headline\":\"Title\"}"
-      },
-      
-      "keyword_cannibalization": {
-        "status": "Low Risk",
-        "risk_score": 15,
-        "optimization_tips": ["Use unique titles", "Differentiate content"]
-      },
-      
-      "brand_backlink_analysis": {
-        "brand_mentions": [{"source": "Site 1", "sentiment": "Positive"}],
-        "backlink_gap": [{"competitor": "Comp 1", "backlinks": 1000, "missing_links": ["Link 1"], "opportunity_score": 80}],
-        "total_opportunities": 10
-      },
-      
-      "content_freshness": {
-        "freshness_score": 70,
-        "update_recommendations": [{"section": "Prices", "reason": "Need update", "priority": "High", "suggested_updates": ["New data"]}],
-        "trending_topics": ["Topic 1", "Topic 2"]
-      },
-      
-      "seo_metadata": {
-        "title_tag": "Best ${keyword}: Complete Guide & Reviews 2026",
-        "meta_description": "Find the best ${keyword} with expert reviews, comparison tables, and buying guide",
-        "url_slug": "best-${keyword.toLowerCase().replace(/\\s+/g, '-')}",
-        "focus_keyword": "${keyword}",
-        "h1_tag": "Best ${keyword}: Complete Guide",
-        "seo_grade": "B+",
-        "readability_score": 72,
-        "keyword_density": 1.2
-      },
-      
-      "content_recommendations": {
-        "title": "Best ${keyword}: Complete Buying Guide 2026",
-        "meta_description": "Find the best ${keyword} with expert reviews and comparison",
-        "target_audience": "Users looking for the best ${keyword}",
-        "content_length": "2000-2500 words",
-        "tone": "Professional and informative",
-        "seo_tips": ["Use comparison tables", "Include user reviews", "Add video content"]
-      }
-    }
+    **RELATED SEARCHES:**
+    ${JSON.stringify(relatedSearches, null, 2)}
+
+    **SERP FEATURES:**
+    ${JSON.stringify(serpFeatures, null, 2)}
+
+    **CRITICAL RULES:**
+    1. Use the REAL competitors from the data above to populate "competitor_table".
+    2. "faq_questions" MUST have EXACTLY 4 questions.
+    3. "missing_headings" must have AT LEAST 5 headings.
+    4. "authority_links" must have AT LEAST 3 links from the competitors or known authority sites.
+    5. Generate all 14 features with quality data based on the REAL SERP data.
+
+    Generate COMPLETE JSON with all fields based on the real SERP data provided above.
   `;
 
   try {
     const startTime = Date.now();
     const response = await groq.chat.completions.create({
       messages: [
-        { role: 'system', content: 'SEO expert. Return JSON only. FAQ MUST have EXACTLY 4 questions.' },
-        { role: 'user', content: prompt }
+        { 
+          role: 'system', 
+          content: 'You are a Senior SEO Expert. Use the REAL SERP data provided. Return ONLY valid JSON. No markdown. FAQ MUST have EXACTLY 4 questions.' 
+        },
+        { 
+          role: 'user', 
+          content: prompt 
+        }
       ],
       model: 'llama-3.3-70b-versatile',
       temperature: 0.3,
@@ -785,30 +666,50 @@ const generateUltimateInsights = async (keyword, serpData) => {
     const cleanJson = text.replace(/```json|```/g, '').trim();
     const parsedData = JSON.parse(cleanJson);
     
+    // Ensure competitor_table has real data
+    if (!parsedData.competitor_table || parsedData.competitor_table.length === 0) {
+      parsedData.competitor_table = realCompetitors.map(c => ({
+        rank: c.rank,
+        title: c.title,
+        strength: c.snippet || 'N/A'
+      }));
+    }
+
     parsedData.keyword = keyword;
+    
+    // Pass real competitors for sanitization
+    parsedData._realCompetitors = realCompetitors;
+    
     const sanitizedData = sanitizeData(parsedData);
     
-    if (!sanitizedData.faq_questions || sanitizedData.faq_questions.length < 4) {
-      sanitizedData.faq_questions = [
-        `What is the best ${keyword}?`,
-        `Which ${keyword} has the best features?`,
-        `What is the price of ${keyword}?`,
-        `Which ${keyword} is best for beginners?`
-      ];
+    // Ensure competitor_table has real data
+    if (!sanitizedData.competitor_table || sanitizedData.competitor_table.length === 0) {
+      sanitizedData.competitor_table = realCompetitors.map(c => ({
+        rank: c.rank,
+        title: c.title.substring(0, 60),
+        strength: c.snippet ? c.snippet.substring(0, 80) : 'N/A'
+      }));
     }
-    
+
     return sanitizedData;
   } catch (error) {
     logger.error('❌ GROQ Error:', error.message);
-    return sanitizeData({
+    // Return with real competitors even if GROQ fails
+    const fallbackData = {
       keyword: keyword,
+      competitor_table: realCompetitors.map(c => ({
+        rank: c.rank,
+        title: c.title.substring(0, 60),
+        strength: c.snippet ? c.snippet.substring(0, 80) : 'N/A'
+      })),
       faq_questions: [
         `What is the best ${keyword}?`,
         `Which ${keyword} has the best features?`,
         `What is the price of ${keyword}?`,
         `Which ${keyword} is best for beginners?`
       ]
-    });
+    };
+    return sanitizeData(fallbackData);
   }
 };
 
@@ -848,7 +749,7 @@ app.get('/api/health', async (req, res) => {
   
   res.json({
     status: 'OK',
-    message: 'RankForge ULTIMATE POWER EDITION V7',
+    message: 'RankForge ULTIMATE POWER EDITION V7 - REAL COMPETITORS',
     version: '7.0.0',
     timestamp: new Date().toISOString(),
     mongodb: dbStatus,
@@ -870,7 +771,7 @@ app.get('/api/health', async (req, res) => {
       'Brand Mention & Backlink Gap Analysis',
       'Content Freshness Suggestions',
       'Complete SEO Metadata',
-      '4 FAQ Enforced'
+      'REAL Competitors from SERP'
     ],
     stats: {
       total_reports: totalReports,
@@ -996,7 +897,7 @@ app.listen(PORT, () => {
   logger.info('='.repeat(60));
   logger.info(`🚀 ULTIMATE POWER EDITION V7 running on port ${PORT}`);
   logger.info(`📊 Model: GROQ: llama-3.3-70b-versatile`);
-  logger.info(`⚡ 14 Features + 4 FAQ ENFORCED + AUTO-GENERATED SEO METADATA`);
+  logger.info(`⚡ REAL Competitors from SERP | 4 FAQ ENFORCED | Complete SEO Metadata`);
   logger.info(`📈 Health Check: /api/health`);
   logger.info(`📊 Analytics: /api/analytics`);
   logger.info('='.repeat(60));
