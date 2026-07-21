@@ -66,7 +66,7 @@ app.use('/api/', limiter);
 
 // ---------- 3. Startup Logging ----------
 logger.info('='.repeat(60));
-logger.info('🚀 RankForge ULTIMATE Edition V7 - COMPLETE');
+logger.info('🚀 RankForge ULTIMATE Edition V7 - 4 FAQ ENFORCED');
 logger.info('='.repeat(60));
 logger.info(`🔍 GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✅ Set' : '❌ Missing'}`);
 logger.info(`🔍 SERPAPI_KEY: ${process.env.SERPAPI_KEY ? '✅ Set' : '❌ Missing'}`);
@@ -83,7 +83,7 @@ mongoose.connect(process.env.MONGODB_URI, {
     process.exit(1);
   });
 
-// ---------- 5. MongoDB Schema (COMPLETE) ----------
+// ---------- 5. MongoDB Schema (ULTIMATE Edition) ----------
 const ReportSchema = new mongoose.Schema({
   keyword: { type: String, required: true, index: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
@@ -356,8 +356,6 @@ const sanitizeData = (rawData) => {
     keyword_cannibalization: { status: 'Low Risk', risk_score: 0, cannibalizing_keywords: [], optimization_tips: [] },
     brand_backlink_analysis: { brand_mentions: [], backlink_gap: [], total_opportunities: 0 },
     content_freshness: { freshness_score: 0, last_updated: '', outdated_sections: [], update_recommendations: [], trending_topics: [] },
-    
-    // COMPLETE SEO METADATA
     seo_metadata: { 
       title_tag: '', 
       meta_description: '', 
@@ -368,7 +366,6 @@ const sanitizeData = (rawData) => {
       readability_score: 70,
       keyword_density: 1.2
     },
-    
     content_recommendations: { 
       title: '', 
       meta_description: '', 
@@ -401,6 +398,29 @@ const sanitizeData = (rawData) => {
         continue;
       }
 
+      if (key === 'faq_questions') {
+        if (Array.isArray(rawData[key])) {
+          // ✅ ENSURE 4 FAQ - STRICT ENFORCEMENT
+          const existing = rawData[key].filter(q => typeof q === 'string' && q.trim().length > 0);
+          const keyword = rawData.keyword || 'this topic';
+          const defaultFAQs = [
+            `What is the best ${keyword}?`,
+            `Which ${keyword} has the best features?`,
+            `What is the price of ${keyword}?`,
+            `Which ${keyword} is best for beginners?`
+          ];
+          
+          const filled = [...existing];
+          for (let i = filled.length; i < 4; i++) {
+            filled.push(defaultFAQs[i] || `Question ${i+1} about ${keyword}?`);
+          }
+          sanitized.faq_questions = filled.slice(0, 4);
+        } else if (typeof rawData[key] === 'string') {
+          sanitized.faq_questions = [rawData[key]];
+        }
+        continue;
+      }
+
       if (key === 'seo_metadata' && typeof rawData[key] === 'object') {
         sanitized.seo_metadata = { ...defaultData.seo_metadata, ...rawData[key] };
         continue;
@@ -419,6 +439,17 @@ const sanitizeData = (rawData) => {
         sanitized[key] = rawData[key];
       }
     }
+  }
+
+  // ✅ FINAL SAFETY CHECK: Ensure 4 FAQ
+  if (!sanitized.faq_questions || sanitized.faq_questions.length < 4) {
+    const kw = rawData.keyword || 'this topic';
+    sanitized.faq_questions = [
+      `What is the best ${kw}?`,
+      `Which ${kw} has the best features?`,
+      `What is the price of ${kw}?`,
+      `Which ${kw} is best for beginners?`
+    ];
   }
 
   return sanitized;
@@ -463,6 +494,7 @@ const generateUltimateInsights = async (keyword, serpData) => {
 
   logger.info(`🤖 GROQ Analysis for: "${keyword}"`);
 
+  // PROMPT WITH 4 FAQ ENFORCEMENT
   const prompt = `
     SEO Expert. Analyze "${keyword}". Return ONLY valid JSON.
 
@@ -471,53 +503,57 @@ const generateUltimateInsights = async (keyword, serpData) => {
     Related: ${JSON.stringify(related)}
     SERP Features: ${JSON.stringify(features)}
 
-    Generate COMPLETE JSON with ALL fields. Focus on QUALITY data. For SEO metadata, create relevant title, description, slug.
+    CRITICAL RULES:
+    1. "faq_questions" MUST have EXACTLY 4 questions. No more, no less.
+    2. "missing_headings" must have AT LEAST 5 headings.
+    3. "authority_links" must have AT LEAST 3 links.
+    4. Generate all 14 features with quality data.
 
+    Generate COMPLETE JSON:
     {
       "keyword_intent": "Informational",
       "content_score": 80,
       "readability_avg": "Medium",
-      "missing_headings": ["Top Smartphone Brands in Australia", "Best Camera Phones 2026", "Battery Life Comparison", "5G Coverage in Australia"],
-      "faq_questions": ["What is the best smartphone in Australia?", "Which phone has the best camera?", "What is the cheapest 5G phone?"],
-      "authority_links": ["https://www.gsmarena.com", "https://www.techradar.com", "https://www.whistleout.com.au"],
+      "missing_headings": ["Heading 1", "Heading 2", "Heading 3", "Heading 4", "Heading 5"],
+      "faq_questions": ["Q1?", "Q2?", "Q3?", "Q4?"],
+      "authority_links": ["https://link1.com", "https://link2.com", "https://link3.com"],
       
       "competitor_table": [
-        {"rank": 1, "title": "Samsung Galaxy S26 Ultra", "strength": "Best display and camera"},
-        {"rank": 2, "title": "Apple iPhone 16 Pro Max", "strength": "Ecosystem and performance"},
-        {"rank": 3, "title": "Google Pixel 10 Pro", "strength": "Best AI and camera"}
+        {"rank": 1, "title": "Competitor 1", "strength": "Main advantage"},
+        {"rank": 2, "title": "Competitor 2", "strength": "Main advantage"}
       ],
       
       "search_intent_analysis": {
         "intent_type": "Informational",
         "confidence_score": 85,
-        "sub_intents": ["Compare models", "Research prices", "Find best features"],
-        "user_goal": "To find the best smartphone for their needs",
+        "sub_intents": ["Compare", "Research"],
+        "user_goal": "To find the best options",
         "buyer_stage": "Research",
         "content_type": "Review/Comparison Guide"
       },
       
       "full_serp_analysis": {
-        "total_results": 850000,
+        "total_results": 500000,
         "organic_results": [],
-        "featured_snippet": "The best smartphones in Australia include Samsung Galaxy S26, iPhone 16 Pro Max, and Google Pixel 10.",
-        "serp_features": ["Featured Snippet", "People Also Ask", "Related Searches"]
+        "featured_snippet": "Featured snippet content",
+        "serp_features": ["Featured Snippet", "People Also Ask"]
       },
       
       "nlp_entity_extraction": {
-        "entities": [{"name": "Samsung", "type": "Organization", "salience": 0.85}],
-        "key_phrases": ["best smartphone", "Australia 2026", "camera quality"],
+        "entities": [{"name": "Brand", "type": "Organization", "salience": 0.85}],
+        "key_phrases": ["key phrase 1", "key phrase 2"],
         "sentiment_score": 0.75,
         "language": "en",
-        "topics": ["Technology", "Mobile Phones", "Consumer Electronics"]
+        "topics": ["Topic 1", "Topic 2"]
       },
       
       "topical_authority_map": {
-        "core_topics": [{"topic": "Smartphone Reviews", "authority_score": 85}],
-        "topic_clusters": [{"cluster_name": "Mobile Technology", "keywords": ["5G", "camera", "battery"], "priority": "High"}],
-        "content_hubs": ["Tech Reviews", "Buying Guides"]
+        "core_topics": [{"topic": "Topic 1", "authority_score": 85, "coverage_score": 75, "gap_score": 25, "recommendations": ["Create more content"]}],
+        "topic_clusters": [{"cluster_name": "Cluster 1", "keywords": ["kw1", "kw2"], "priority": "High"}],
+        "content_hubs": ["Hub 1", "Hub 2"]
       },
       
-      "internal_links": [{"anchor_text": "Best Phones 2026", "target_url": "/best-phones", "relevance_score": 90}],
+      "internal_links": [{"anchor_text": "Link 1", "target_url": "/page1", "relevance_score": 85, "context": "Context", "page_type": "Blog"}],
       
       "eeat_score": {
         "experience": 75,
@@ -526,36 +562,36 @@ const generateUltimateInsights = async (keyword, serpData) => {
         "trustworthiness": 75,
         "overall_score": 75,
         "grade": "B",
-        "recommendations": ["Include expert opinions", "Cite reliable sources"]
+        "recommendations": ["Add expert opinions", "Cite sources"]
       },
       
       "featured_snippet_opportunities": {
         "eligibility_score": 80,
-        "current_snippet": "Best smartphones in Australia include flagship models from Samsung, Apple, and Google.",
-        "optimization_tips": ["Use bullet points", "Include price range", "Add comparison table"],
+        "current_snippet": "Current snippet",
+        "optimization_tips": ["Use bullet points", "Add clear answers"],
         "format_type": "List",
         "priority": "High"
       },
       
       "ai_overview_optimization": {
         "visibility_score": 70,
-        "optimization_tips": ["Use FAQ schema", "Include price data", "Update regularly"],
-        "structure_recommendations": ["Use H2 for categories", "H3 for specific models"],
-        "question_coverage": ["What is best?", "Which has best camera?"],
-        "featured_criteria": ["Clear answers", "Structured data"]
+        "optimization_tips": ["Use structured data", "Answer questions clearly"],
+        "structure_recommendations": ["Use H2 headings", "Include FAQ"],
+        "question_coverage": ["Question 1", "Question 2"],
+        "featured_criteria": ["Clear answers", "Structured content"]
       },
       
       "people_also_ask_expanded": [
-        {"question": "What is the best phone in Australia 2026?", "answer": "Samsung Galaxy S26 Ultra", "difficulty": "Medium"}
+        {"question": "Q1?", "answer": "Answer 1", "difficulty": "Medium", "related_questions": ["Related 1"], "source": "Google PAA"}
       ],
       
       "content_brief": {
-        "title": "Best Smartphones in Australia 2026: Complete Buying Guide",
-        "meta_description": "Find the best smartphones in Australia for 2026. Compare Samsung, Apple, Google and more. Expert reviews and buying guide.",
-        "target_audience": "Tech enthusiasts and smartphone buyers in Australia",
-        "content_goal": "To help readers choose the perfect smartphone",
-        "h2_headings": [{"heading": "Top Smartphone Brands in Australia", "key_points": ["Samsung", "Apple", "Google"]}],
-        "h3_subheadings": [{"heading": "Samsung Galaxy S26 Ultra Review", "context": "Detailed review"}],
+        "title": "Best ${keyword}: Complete Guide",
+        "meta_description": "Find the best ${keyword} with expert reviews and comparison",
+        "target_audience": "Users looking for ${keyword}",
+        "content_goal": "Help users make informed decisions",
+        "h2_headings": [{"heading": "Top Brands", "key_points": ["Point 1", "Point 2"], "word_count": 300, "priority": "High"}],
+        "h3_subheadings": [{"heading": "Sub-heading 1", "context": "Context", "keywords": ["kw1", "kw2"]}],
         "word_count_recommendation": 2500,
         "recommended_sections": ["Introduction", "Top Picks", "Comparison", "Buying Guide"]
       },
@@ -564,7 +600,7 @@ const generateUltimateInsights = async (keyword, serpData) => {
         "faq": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"FAQPage\"}</script>",
         "product": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\"}</script>",
         "article": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Article\"}</script>",
-        "complete_json": "{\"@context\":\"https://schema.org\",\"@type\":\"Article\",\"headline\":\"Best Smartphones Australia 2026\"}"
+        "complete_json": "{\"@context\":\"https://schema.org\",\"@type\":\"Article\",\"headline\":\"Title\"}"
       },
       
       "keyword_cannibalization": {
@@ -574,32 +610,32 @@ const generateUltimateInsights = async (keyword, serpData) => {
       },
       
       "brand_backlink_analysis": {
-        "brand_mentions": [{"source": "TechRadar", "sentiment": "Positive"}],
-        "backlink_gap": [{"competitor": "WhistleOut", "backlinks": 1200}],
-        "total_opportunities": 12
+        "brand_mentions": [{"source": "Site 1", "sentiment": "Positive"}],
+        "backlink_gap": [{"competitor": "Comp 1", "backlinks": 1000, "missing_links": ["Link 1"], "opportunity_score": 80}],
+        "total_opportunities": 10
       },
       
       "content_freshness": {
-        "freshness_score": 75,
-        "update_recommendations": [{"section": "Prices", "reason": "Need latest pricing", "priority": "High"}],
-        "trending_topics": ["Foldable phones", "AI features"]
+        "freshness_score": 70,
+        "update_recommendations": [{"section": "Prices", "reason": "Need update", "priority": "High", "suggested_updates": ["New data"]}],
+        "trending_topics": ["Topic 1", "Topic 2"]
       },
       
       "seo_metadata": {
-        "title_tag": "Best Smartphones in Australia 2026: Expert Reviews & Buying Guide",
-        "meta_description": "Compare the best smartphones in Australia for 2026. Expert reviews of Samsung Galaxy S26, iPhone 16 Pro Max, Google Pixel 10 and more.",
-        "url_slug": "best-smartphones-australia-2026",
-        "focus_keyword": "best smartphones australia",
-        "h1_tag": "Best Smartphones in Australia 2026: Complete Guide",
+        "title_tag": "Best ${keyword}: Complete Guide & Reviews",
+        "meta_description": "Find the best ${keyword} with expert reviews, comparison tables, and buying guide",
+        "url_slug": "best-${keyword}",
+        "focus_keyword": "${keyword}",
+        "h1_tag": "Best ${keyword}: Complete Guide",
         "seo_grade": "B+",
         "readability_score": 72,
         "keyword_density": 1.2
       },
       
       "content_recommendations": {
-        "title": "Best Smartphones in Australia 2026: Complete Buying Guide",
-        "meta_description": "Find the best smartphones in Australia for 2026 with our expert reviews, comparison tables, and buying guide.",
-        "target_audience": "Australian consumers looking for the best smartphone",
+        "title": "Best ${keyword}: Complete Buying Guide",
+        "meta_description": "Find the best ${keyword} with expert reviews and comparison",
+        "target_audience": "Users looking for ${keyword}",
         "content_length": "2000-2500 words",
         "tone": "Professional and informative",
         "seo_tips": ["Use comparison tables", "Include user reviews", "Add video content"]
@@ -611,7 +647,7 @@ const generateUltimateInsights = async (keyword, serpData) => {
     const startTime = Date.now();
     const response = await groq.chat.completions.create({
       messages: [
-        { role: 'system', content: 'SEO expert. Return valid JSON only. Include all fields.' },
+        { role: 'system', content: 'SEO expert. Return JSON only. FAQ MUST have EXACTLY 4 questions.' },
         { role: 'user', content: prompt }
       ],
       model: 'llama-3.3-70b-versatile',
@@ -626,10 +662,34 @@ const generateUltimateInsights = async (keyword, serpData) => {
     
     const cleanJson = text.replace(/```json|```/g, '').trim();
     const parsedData = JSON.parse(cleanJson);
-    return sanitizeData(parsedData);
+    
+    // ✅ Pass keyword to sanitizer for FAQ enforcement
+    parsedData.keyword = keyword;
+    const sanitizedData = sanitizeData(parsedData);
+    
+    // ✅ Final check: Ensure 4 FAQ
+    if (!sanitizedData.faq_questions || sanitizedData.faq_questions.length < 4) {
+      sanitizedData.faq_questions = [
+        `What is the best ${keyword}?`,
+        `Which ${keyword} has the best features?`,
+        `What is the price of ${keyword}?`,
+        `Which ${keyword} is best for beginners?`
+      ];
+    }
+    
+    return sanitizedData;
   } catch (error) {
     logger.error('❌ GROQ Error:', error.message);
-    return sanitizeData({});
+    // Return safe default with 4 FAQ
+    return sanitizeData({
+      keyword: keyword,
+      faq_questions: [
+        `What is the best ${keyword}?`,
+        `Which ${keyword} has the best features?`,
+        `What is the price of ${keyword}?`,
+        `Which ${keyword} is best for beginners?`
+      ]
+    });
   }
 };
 
@@ -661,6 +721,8 @@ const fetchSerp = async (keyword) => {
 };
 
 // ---------- 9. API Routes ----------
+
+// GET: Health Check
 app.get('/api/health', async (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
   const totalReports = await Report.countDocuments();
@@ -668,7 +730,7 @@ app.get('/api/health', async (req, res) => {
   
   res.json({
     status: 'OK',
-    message: 'RankForge ULTIMATE Edition V7 - COMPLETE',
+    message: 'RankForge ULTIMATE Edition V7 - 4 FAQ ENFORCED',
     version: '7.0.0',
     timestamp: new Date().toISOString(),
     mongodb: dbStatus,
@@ -689,7 +751,8 @@ app.get('/api/health', async (req, res) => {
       'Keyword Cannibalization Check',
       'Brand Mention & Backlink Gap Analysis',
       'Content Freshness Suggestions',
-      'Complete SEO Metadata'
+      'Complete SEO Metadata',
+      '4 FAQ Enforced'
     ],
     stats: {
       total_reports: totalReports,
@@ -698,6 +761,7 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
+// POST: Generate Report
 app.post('/api/generate', async (req, res) => {
   const { keyword } = req.body;
   if (!keyword) return res.status(400).json({ error: 'Keyword required' });
@@ -711,7 +775,11 @@ app.post('/api/generate', async (req, res) => {
 
     const pending = await Report.findOne({ keyword, status: 'pending' });
     if (pending) {
-      return res.json({ reportId: pending._id, cached: false, message: 'Already processing...' });
+      return res.json({ 
+        reportId: pending._id, 
+        cached: false, 
+        message: 'Already processing...' 
+      });
     }
 
     const newReport = new Report({ keyword, status: 'pending' });
@@ -720,15 +788,20 @@ app.post('/api/generate', async (req, res) => {
     res.json({ reportId: newReport._id, cached: false, message: 'Processing ULTIMATE analysis...' });
 
     (async () => {
+      const startTime = Date.now();
       try {
-        logger.info(`🔄 Starting Analysis for: "${keyword}"`);
+        logger.info(`🔄 Starting ULTIMATE Analysis for: "${keyword}"`);
+        
         const serpData = await fetchSerp(keyword);
         const insights = await generateUltimateInsights(keyword, serpData);
+        const endTime = Date.now();
+        
         await Report.findByIdAndUpdate(newReport._id, {
           status: 'completed',
-          data: insights
+          data: insights,
+          processingTime: (endTime - startTime) / 1000
         });
-        logger.info(`✅ Analysis Completed: "${keyword}"`);
+        logger.info(`✅ ULTIMATE Analysis Completed: "${keyword}" in ${(endTime - startTime) / 1000}s`);
       } catch (error) {
         logger.error(`❌ Failed: "${keyword}"`, error.message);
         await Report.findByIdAndUpdate(newReport._id, { 
@@ -744,6 +817,7 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
+// GET: Report Status
 app.get('/api/report/:id', async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -754,6 +828,7 @@ app.get('/api/report/:id', async (req, res) => {
   }
 });
 
+// GET: Analytics
 app.get('/api/analytics', async (req, res) => {
   try {
     const total = await Report.countDocuments();
@@ -773,11 +848,41 @@ app.get('/api/analytics', async (req, res) => {
   }
 });
 
-// ---------- 10. Start Server ----------
+// ---------- 10. Cron Jobs ----------
+cron.schedule('0 9 * * 1', async () => {
+  logger.info('📊 Generating weekly analytics report...');
+  try {
+    const total = await Report.countDocuments();
+    const completed = await Report.countDocuments({ status: 'completed' });
+    logger.info(`📊 Weekly Stats: Total: ${total}, Completed: ${completed}`);
+  } catch (error) {
+    logger.error('❌ Cron Error:', error);
+  }
+});
+
+cron.schedule('0 0 * * *', async () => {
+  logger.info('🗑️ Cleaning up failed reports...');
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const result = await Report.deleteMany({
+      status: 'failed',
+      createdAt: { $lt: sevenDaysAgo }
+    });
+    logger.info(`🗑️ Deleted ${result.deletedCount} failed reports`);
+  } catch (error) {
+    logger.error('❌ Cleanup Error:', error);
+  }
+});
+
+// ---------- 11. Start Server ----------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   logger.info('='.repeat(60));
-  logger.info(`🚀 ULTIMATE Server V7 COMPLETE running on port ${PORT}`);
-  logger.info(`⚡ 14 Features + Complete SEO Metadata`);
+  logger.info(`🚀 ULTIMATE Server V7 running on port ${PORT}`);
+  logger.info(`📊 Model: GROQ: llama-3.3-70b-versatile`);
+  logger.info(`⚡ 14 Features + 4 FAQ ENFORCED`);
+  logger.info(`📈 Health Check: /api/health`);
+  logger.info(`📊 Analytics: /api/analytics`);
   logger.info('='.repeat(60));
 });
