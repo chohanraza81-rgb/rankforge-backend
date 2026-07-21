@@ -52,24 +52,25 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Rate Limiting
+// Rate Limiting (Fixed for Railway)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: 'Too many requests, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
+  trustProxy: true,
+  validate: { trustProxy: false },
 });
 app.use('/api/', limiter);
 
 // ---------- 3. Startup Logging ----------
 logger.info('='.repeat(60));
-logger.info('🚀 RankForge Enterprise Backend V4');
+logger.info('🚀 RankForge Enterprise Backend V5');
 logger.info('='.repeat(60));
 logger.info(`🔍 GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✅ Set' : '❌ Missing'}`);
 logger.info(`🔍 SERPAPI_KEY: ${process.env.SERPAPI_KEY ? '✅ Set' : '❌ Missing'}`);
 logger.info(`🔍 MONGODB_URI: ${process.env.MONGODB_URI ? '✅ Set' : '❌ Missing'}`);
-logger.info(`🔍 FRONTEND_URL: ${process.env.FRONTEND_URL || 'Not Set'}`);
 
 // ---------- 4. MongoDB Connection ----------
 mongoose.connect(process.env.MONGODB_URI, {
@@ -82,7 +83,7 @@ mongoose.connect(process.env.MONGODB_URI, {
     process.exit(1);
   });
 
-// ---------- 5. MongoDB Schema (V4 - Premium) ----------
+// ---------- 5. MongoDB Schema ----------
 const ReportSchema = new mongoose.Schema({
   keyword: { type: String, required: true, index: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
@@ -97,7 +98,60 @@ const ReportSchema = new mongoose.Schema({
     authority_links: [String],
     competitor_table: [Object],
     
-    // V4 Premium Fields
+    // Readability Score
+    readability_score: {
+      flesch_kincaid: Number,
+      grade_level: String,
+      sentence_length: Number,
+      word_complexity: String,
+      recommendations: [String]
+    },
+    
+    // Trend Forecast
+    trend_forecast: {
+      growth: String,
+      seasonality: String,
+      peak_months: [String],
+      strategy: String
+    },
+    
+    // Pricing Intelligence
+    pricing_intelligence: {
+      average_price: String,
+      price_range: String,
+      value_for_money: String
+    },
+    
+    // Content Requirements
+    content_requirements: {
+      recommended_words: Number,
+      min_words: Number,
+      max_words: Number,
+      images_needed: Number,
+      media_format: String,
+      video_suggestions: [String]
+    },
+    
+    // Keyword Metrics
+    keyword_metrics: {
+      search_volume: Number,
+      difficulty: Number,
+      cpc: Number,
+      competition: String,
+      related_keywords: [String]
+    },
+    
+    // Backlink Gap
+    backlink_gap: {
+      competitor_backlinks: [Object],
+      backlink_opportunities: [String],
+      backlink_strategy: String,
+      cost: String,
+      impact: String,
+      opportunities: Number
+    },
+    
+    // Content Strategy
     content_recommendations: {
       title: String,
       meta_description: String,
@@ -106,22 +160,8 @@ const ReportSchema = new mongoose.Schema({
       tone: String,
       seo_tips: [String]
     },
-    competitor_analysis: {
-      top_strengths: [String],
-      top_weaknesses: [String],
-      gap_opportunities: [String]
-    },
-    keyword_opportunities: {
-      primary_keywords: [String],
-      secondary_keywords: [String],
-      long_tail_keywords: [String]
-    },
-    content_structure: {
-      introduction: String,
-      main_points: [String],
-      conclusion: String,
-      call_to_action: String
-    },
+    
+    // SEO Metadata
     seo_metadata: {
       title_tag: String,
       meta_description: String,
@@ -137,7 +177,7 @@ ReportSchema.index({ status: 1 });
 
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 6. GROQ AI Service (V4 - Enhanced) ----------
+// ---------- 6. GROQ AI Service ----------
 if (!process.env.GROQ_API_KEY) {
   logger.error('❌ Fatal Error: GROQ_API_KEY is missing!');
   process.exit(1);
@@ -150,22 +190,21 @@ const groq = new Groq({
 const generatePremiumInsights = async (keyword, serpData) => {
   const competitors = serpData.organic_results?.slice(0, 5).map((r, i) => ({
     rank: i + 1,
-    title: (r.title || 'N/A').substring(0, 60),
-    snippet: (r.snippet || '').substring(0, 200),
+    title: (r.title || 'N/A').substring(0, 80),
+    snippet: (r.snippet || '').substring(0, 250),
     link: r.link || '#'
   })) || [];
 
-  logger.info(`🤖 GROQ Premium Analysis for: "${keyword}"`);
+  logger.info(`🤖 GROQ Analysis for: "${keyword}"`);
   logger.info(`📊 Analyzing ${competitors.length} competitors`);
 
   const prompt = `
-    You are a Senior SEO Expert and Content Strategist. Perform a DEEP, PREMIUM analysis for keyword: "${keyword}".
+    You are a Senior SEO Expert and Data Analyst. Perform a ULTIMATE, ENTERPRISE-GRADE analysis for keyword: "${keyword}".
     
     **CRITICAL RULES:**
     1. Return ONLY valid JSON.
     2. NO markdown, NO explanations outside JSON.
     3. Be specific, actionable, and data-driven.
-    4. Think like a $10,000/month SEO consultant.
     
     Competitor Data (Top 5):
     ${JSON.stringify(competitors, null, 2)}
@@ -176,40 +215,73 @@ const generatePremiumInsights = async (keyword, serpData) => {
       "content_score": 85,
       "readability_avg": "Easy/Medium/Hard",
       
-      "missing_headings": ["H2 heading 1", "H2 heading 2"],
-      "faq_questions": ["Question 1?", "Question 2?"],
-      "authority_links": ["https://example1.com", "https://example2.com"],
+      "missing_headings": ["H2 heading 1", "H2 heading 2", "H2 heading 3", "H2 heading 4", "H2 heading 5"],
+      "faq_questions": ["Q1?", "Q2?", "Q3?", "Q4?", "Q5?", "Q6?"],
+      "authority_links": ["https://example1.com", "https://example2.com", "https://example3.com"],
       
       "competitor_table": [
-        {"rank": 1, "title": "Competitor 1", "strength": "Their main advantage"}
+        {"rank": 1, "title": "Competitor 1", "strength": "Main advantage"},
+        {"rank": 2, "title": "Competitor 2", "strength": "Main advantage"},
+        {"rank": 3, "title": "Competitor 3", "strength": "Main advantage"}
       ],
       
+      "readability_score": {
+        "flesch_kincaid": 70,
+        "grade_level": "9th Grade",
+        "sentence_length": 18,
+        "word_complexity": "Medium",
+        "recommendations": ["Use shorter sentences", "Simplify vocabulary"]
+      },
+      
+      "trend_forecast": {
+        "growth": "20%",
+        "seasonality": "Peak in Q4 and Q1",
+        "peak_months": ["November", "December", "January"],
+        "strategy": "Create content before peak season"
+      },
+      
+      "pricing_intelligence": {
+        "average_price": "50,000 JPY",
+        "price_range": "30,000 - 200,000 JPY",
+        "value_for_money": "Best value models"
+      },
+      
+      "content_requirements": {
+        "recommended_words": 3000,
+        "min_words": 2000,
+        "max_words": 4000,
+        "images_needed": 10,
+        "media_format": "HD Images + Videos",
+        "video_suggestions": ["Unboxing video", "Comparison video"]
+      },
+      
+      "keyword_metrics": {
+        "search_volume": 1000,
+        "difficulty": 44,
+        "cpc": 0.9,
+        "competition": "High",
+        "related_keywords": ["keyword 1", "keyword 2", "keyword 3", "keyword 4"]
+      },
+      
+      "backlink_gap": {
+        "competitor_backlinks": [
+          {"domain": "example1.com", "backlinks": 1200, "da": 92},
+          {"domain": "example2.com", "backlinks": 500, "da": 65}
+        ],
+        "backlink_opportunities": ["TechRadar Guest Post", "Statista Resource Page"],
+        "backlink_strategy": "Create high-quality content and reach out",
+        "cost": "10 hours content + 5 hours outreach per week",
+        "impact": "15-25 points",
+        "opportunities": 8
+      },
+      
       "content_recommendations": {
-        "title": "SEO-optimized title suggestion",
+        "title": "SEO-optimized title",
         "meta_description": "Meta description under 160 chars",
-        "target_audience": "Who should read this content",
-        "content_length": "1500-2000 words",
+        "target_audience": "Target audience description",
+        "content_length": "2000-2500 words",
         "tone": "Professional",
         "seo_tips": ["Tip 1", "Tip 2", "Tip 3"]
-      },
-      
-      "competitor_analysis": {
-        "top_strengths": ["Strength 1", "Strength 2"],
-        "top_weaknesses": ["Weakness 1", "Weakness 2"],
-        "gap_opportunities": ["Opportunity 1", "Opportunity 2"]
-      },
-      
-      "keyword_opportunities": {
-        "primary_keywords": ["kw1", "kw2"],
-        "secondary_keywords": ["kw3", "kw4"],
-        "long_tail_keywords": ["long tail 1", "long tail 2"]
-      },
-      
-      "content_structure": {
-        "introduction": "Compelling intro paragraph",
-        "main_points": ["Point 1", "Point 2", "Point 3", "Point 4"],
-        "conclusion": "Conclusion paragraph",
-        "call_to_action": "Specific CTA suggestion"
       },
       
       "seo_metadata": {
@@ -236,7 +308,7 @@ const generatePremiumInsights = async (keyword, serpData) => {
       ],
       model: 'llama-3.3-70b-versatile',
       temperature: 0.3,
-      max_tokens: 4096,
+      max_tokens: 8192,
     });
     const endTime = Date.now();
     logger.info(`⏱️ GROQ Response Time: ${(endTime - startTime) / 1000}s`);
@@ -295,8 +367,8 @@ app.get('/api/health', async (req, res) => {
   
   res.json({
     status: 'OK',
-    message: 'RankForge Enterprise Backend V4 is Live!',
-    version: '4.0.0',
+    message: 'RankForge Enterprise Backend V5 is Live!',
+    version: '5.0.0',
     timestamp: new Date().toISOString(),
     mongodb: dbStatus,
     groq: process.env.GROQ_API_KEY ? 'Configured' : 'Missing',
@@ -338,7 +410,7 @@ app.post('/api/generate', async (req, res) => {
     (async () => {
       const startTime = Date.now();
       try {
-        logger.info(`🔄 Starting Premium Analysis for: "${keyword}"`);
+        logger.info(`🔄 Starting Analysis for: "${keyword}"`);
         
         const serpData = await fetchSerp(keyword);
         const insights = await generatePremiumInsights(keyword, serpData);
@@ -349,7 +421,7 @@ app.post('/api/generate', async (req, res) => {
           data: insights,
           processingTime: (endTime - startTime) / 1000
         });
-        logger.info(`✅ Premium Analysis Completed: "${keyword}" in ${(endTime - startTime) / 1000}s`);
+        logger.info(`✅ Analysis Completed: "${keyword}" in ${(endTime - startTime) / 1000}s`);
       } catch (error) {
         logger.error(`❌ Failed: "${keyword}"`, error.message);
         await Report.findByIdAndUpdate(newReport._id, { 
@@ -438,7 +510,7 @@ cron.schedule('0 0 * * *', async () => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   logger.info('='.repeat(60));
-  logger.info(`🚀 Enterprise Server running on port ${PORT}`);
+  logger.info(`🚀 Enterprise Server V5 running on port ${PORT}`);
   logger.info(`📊 Model: GROQ: llama-3.3-70b-versatile`);
   logger.info(`📈 Health Check: /api/health`);
   logger.info(`📊 Analytics: /api/analytics`);
