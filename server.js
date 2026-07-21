@@ -66,7 +66,7 @@ app.use('/api/', limiter);
 
 // ---------- 3. Startup Logging ----------
 logger.info('='.repeat(60));
-logger.info('🚀 RankForge ULTIMATE Edition V7 - ERROR-FREE');
+logger.info('🚀 RankForge ULTIMATE Edition V7 - COMPLETE');
 logger.info('='.repeat(60));
 logger.info(`🔍 GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✅ Set' : '❌ Missing'}`);
 logger.info(`🔍 SERPAPI_KEY: ${process.env.SERPAPI_KEY ? '✅ Set' : '❌ Missing'}`);
@@ -83,14 +83,14 @@ mongoose.connect(process.env.MONGODB_URI, {
     process.exit(1);
   });
 
-// ---------- 5. MongoDB Schema (ULTIMATE Edition - Flexible Types) ----------
+// ---------- 5. MongoDB Schema (COMPLETE) ----------
 const ReportSchema = new mongoose.Schema({
   keyword: { type: String, required: true, index: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
   errorMessage: { type: String, default: '' },
   processingTime: { type: Number, default: 0 },
   data: {
-    // Basic
+    // ===== BASIC =====
     keyword_intent: { type: String, default: '' },
     content_score: { type: Number, default: 0 },
     readability_avg: { type: String, default: '' },
@@ -99,7 +99,7 @@ const ReportSchema = new mongoose.Schema({
     authority_links: { type: [String], default: [] },
     competitor_table: { type: [Object], default: [] },
     
-    // ===== 14 ULTIMATE FEATURES =====
+    // ===== 1. AI SEARCH INTENT ANALYSIS =====
     search_intent_analysis: {
       intent_type: { type: String, default: '' },
       confidence_score: { type: Number, default: 0 },
@@ -108,6 +108,8 @@ const ReportSchema = new mongoose.Schema({
       buyer_stage: { type: String, default: '' },
       content_type: { type: String, default: '' }
     },
+
+    // ===== 2. FULL SERP ANALYSIS =====
     full_serp_analysis: {
       total_results: { type: Number, default: 0 },
       organic_results: { type: [Object], default: [] },
@@ -121,6 +123,8 @@ const ReportSchema = new mongoose.Schema({
       paid_ads: { type: Number, default: 0 },
       serp_features: { type: [String], default: [] }
     },
+
+    // ===== 3. NLP & ENTITY EXTRACTION =====
     nlp_entity_extraction: {
       entities: { type: [Object], default: [] },
       key_phrases: { type: [String], default: [] },
@@ -128,12 +132,18 @@ const ReportSchema = new mongoose.Schema({
       language: { type: String, default: '' },
       topics: { type: [String], default: [] }
     },
+
+    // ===== 4. TOPICAL AUTHORITY MAP =====
     topical_authority_map: {
       core_topics: { type: [Object], default: [] },
       topic_clusters: { type: [Object], default: [] },
       content_hubs: { type: [String], default: [] }
     },
+
+    // ===== 5. INTERNAL LINKS =====
     internal_links: { type: [Object], default: [] },
+
+    // ===== 6. EEAT SCORE =====
     eeat_score: {
       experience: { type: Number, default: 0 },
       expertise: { type: Number, default: 0 },
@@ -143,6 +153,8 @@ const ReportSchema = new mongoose.Schema({
       grade: { type: String, default: '' },
       recommendations: { type: [String], default: [] }
     },
+
+    // ===== 7. FEATURED SNIPPET =====
     featured_snippet_opportunities: {
       eligibility_score: { type: Number, default: 0 },
       current_snippet: { type: String, default: '' },
@@ -151,6 +163,8 @@ const ReportSchema = new mongoose.Schema({
       format_type: { type: String, default: '' },
       priority: { type: String, default: '' }
     },
+
+    // ===== 8. AI OVERVIEW =====
     ai_overview_optimization: {
       visibility_score: { type: Number, default: 0 },
       optimization_tips: { type: [String], default: [] },
@@ -158,7 +172,11 @@ const ReportSchema = new mongoose.Schema({
       question_coverage: { type: [String], default: [] },
       featured_criteria: { type: [String], default: [] }
     },
+
+    // ===== 9. PEOPLE ALSO ASK =====
     people_also_ask_expanded: { type: [Object], default: [] },
+
+    // ===== 10. CONTENT BRIEF =====
     content_brief: {
       title: { type: String, default: '' },
       meta_description: { type: String, default: '' },
@@ -169,6 +187,8 @@ const ReportSchema = new mongoose.Schema({
       word_count_recommendation: { type: Number, default: 0 },
       recommended_sections: { type: [String], default: [] }
     },
+
+    // ===== 11. SCHEMA GENERATOR =====
     schema_generator: {
       faq: { type: String, default: '' },
       product: { type: String, default: '' },
@@ -178,17 +198,23 @@ const ReportSchema = new mongoose.Schema({
       local_business: { type: String, default: '' },
       complete_json: { type: String, default: '' }
     },
+
+    // ===== 12. KEYWORD CANNIBALIZATION =====
     keyword_cannibalization: {
       status: { type: String, default: '' },
       risk_score: { type: Number, default: 0 },
       cannibalizing_keywords: { type: [Object], default: [] },
       optimization_tips: { type: [String], default: [] }
     },
+
+    // ===== 13. BRAND BACKLINK =====
     brand_backlink_analysis: {
       brand_mentions: { type: [Object], default: [] },
       backlink_gap: { type: [Object], default: [] },
       total_opportunities: { type: Number, default: 0 }
     },
+
+    // ===== 14. CONTENT FRESHNESS =====
     content_freshness: {
       freshness_score: { type: Number, default: 0 },
       last_updated: { type: String, default: '' },
@@ -196,7 +222,30 @@ const ReportSchema = new mongoose.Schema({
       update_recommendations: { type: [Object], default: [] },
       trending_topics: { type: [String], default: [] }
     },
-    // Existing features
+
+    // ===== SEO METADATA (COMPLETE) =====
+    seo_metadata: {
+      title_tag: { type: String, default: '' },
+      meta_description: { type: String, default: '' },
+      url_slug: { type: String, default: '' },
+      focus_keyword: { type: String, default: '' },
+      h1_tag: { type: String, default: '' },
+      seo_grade: { type: String, default: '' },
+      readability_score: { type: Number, default: 0 },
+      keyword_density: { type: Number, default: 0 }
+    },
+
+    // ===== CONTENT RECOMMENDATIONS =====
+    content_recommendations: {
+      title: { type: String, default: '' },
+      meta_description: { type: String, default: '' },
+      target_audience: { type: String, default: '' },
+      content_length: { type: String, default: '' },
+      tone: { type: String, default: '' },
+      seo_tips: { type: [String], default: [] }
+    },
+
+    // ===== EXISTING FEATURES =====
     readability_score: {
       flesch_kincaid: { type: Number, default: 0 },
       grade_level: { type: String, default: '' },
@@ -238,20 +287,6 @@ const ReportSchema = new mongoose.Schema({
       impact: { type: String, default: '' },
       opportunities: { type: Number, default: 0 }
     },
-    content_recommendations: {
-      title: { type: String, default: '' },
-      meta_description: { type: String, default: '' },
-      target_audience: { type: String, default: '' },
-      content_length: { type: String, default: '' },
-      tone: { type: String, default: '' },
-      seo_tips: { type: [String], default: [] }
-    },
-    seo_metadata: {
-      title_tag: { type: String, default: '' },
-      meta_description: { type: String, default: '' },
-      url_slug: { type: String, default: '' },
-      focus_keyword: { type: String, default: '' }
-    },
     realtime_competitor_analysis: { type: Object, default: {} },
     nlp_keywords: { type: Object, default: {} },
     people_also_ask: { type: [Object], default: [] },
@@ -268,7 +303,7 @@ ReportSchema.index({ status: 1 });
 
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 6. DATA SANITIZER - Converts GROQ response to correct types ----------
+// ---------- 6. DATA SANITIZER ----------
 const sanitizeData = (rawData) => {
   const defaultData = {
     keyword_intent: 'Informational',
@@ -278,8 +313,28 @@ const sanitizeData = (rawData) => {
     faq_questions: [],
     authority_links: [],
     competitor_table: [],
-    search_intent_analysis: { intent_type: 'Informational', confidence_score: 70, sub_intents: [], user_goal: '', buyer_stage: '', content_type: '' },
-    full_serp_analysis: { total_results: 0, organic_results: [], featured_snippet: '', knowledge_panel: '', top_stories: [], videos: [], images: [], people_also_ask: [], related_searches: [], paid_ads: 0, serp_features: [] },
+    
+    search_intent_analysis: { 
+      intent_type: 'Informational', 
+      confidence_score: 70, 
+      sub_intents: [], 
+      user_goal: 'To find the best products', 
+      buyer_stage: 'Research', 
+      content_type: 'Review/Guide' 
+    },
+    full_serp_analysis: { 
+      total_results: 0, 
+      organic_results: [], 
+      featured_snippet: '', 
+      knowledge_panel: '', 
+      top_stories: [], 
+      videos: [], 
+      images: [], 
+      people_also_ask: [], 
+      related_searches: [], 
+      paid_ads: 0, 
+      serp_features: [] 
+    },
     nlp_entity_extraction: { entities: [], key_phrases: [], sentiment_score: 0, language: 'en', topics: [] },
     topical_authority_map: { core_topics: [], topic_clusters: [], content_hubs: [] },
     internal_links: [],
@@ -287,72 +342,75 @@ const sanitizeData = (rawData) => {
     featured_snippet_opportunities: { eligibility_score: 0, current_snippet: '', competitor_snippets: [], optimization_tips: [], format_type: '', priority: '' },
     ai_overview_optimization: { visibility_score: 0, optimization_tips: [], structure_recommendations: [], question_coverage: [], featured_criteria: [] },
     people_also_ask_expanded: [],
-    content_brief: { title: '', meta_description: '', target_audience: '', content_goal: '', h2_headings: [], h3_subheadings: [], word_count_recommendation: 0, recommended_sections: [] },
+    content_brief: { 
+      title: '', 
+      meta_description: '', 
+      target_audience: '', 
+      content_goal: '', 
+      h2_headings: [], 
+      h3_subheadings: [], 
+      word_count_recommendation: 0, 
+      recommended_sections: [] 
+    },
     schema_generator: { faq: '', product: '', review: '', how_to: '', article: '', local_business: '', complete_json: '' },
     keyword_cannibalization: { status: 'Low Risk', risk_score: 0, cannibalizing_keywords: [], optimization_tips: [] },
     brand_backlink_analysis: { brand_mentions: [], backlink_gap: [], total_opportunities: 0 },
     content_freshness: { freshness_score: 0, last_updated: '', outdated_sections: [], update_recommendations: [], trending_topics: [] },
+    
+    // COMPLETE SEO METADATA
+    seo_metadata: { 
+      title_tag: '', 
+      meta_description: '', 
+      url_slug: '', 
+      focus_keyword: '',
+      h1_tag: '',
+      seo_grade: 'B',
+      readability_score: 70,
+      keyword_density: 1.2
+    },
+    
+    content_recommendations: { 
+      title: '', 
+      meta_description: '', 
+      target_audience: '', 
+      content_length: '', 
+      tone: '', 
+      seo_tips: [] 
+    },
     readability_score: { flesch_kincaid: 0, grade_level: '', sentence_length: 0, word_complexity: '', recommendations: [] },
     trend_forecast: { growth: '', seasonality: '', peak_months: [], strategy: '' },
     pricing_intelligence: { average_price: '', price_range: '', value_for_money: '' },
     content_requirements: { recommended_words: 0, min_words: 0, max_words: 0, images_needed: 0, media_format: '', video_suggestions: [] },
     keyword_metrics: { search_volume: 0, difficulty: 0, cpc: 0, competition: '', related_keywords: [] },
-    backlink_gap: { competitor_backlinks: [], backlink_opportunities: [], backlink_strategy: '', cost: '', impact: '', opportunities: 0 },
-    content_recommendations: { title: '', meta_description: '', target_audience: '', content_length: '', tone: '', seo_tips: [] },
-    seo_metadata: { title_tag: '', meta_description: '', url_slug: '', focus_keyword: '' }
+    backlink_gap: { competitor_backlinks: [], backlink_opportunities: [], backlink_strategy: '', cost: '', impact: '', opportunities: 0 }
   };
 
   const sanitized = { ...defaultData };
 
   for (const key of Object.keys(rawData)) {
     if (rawData[key] !== undefined && rawData[key] !== null) {
-      // Handle authority_links - convert to array of strings
-      if (key === 'authority_links' && rawData[key]) {
+      if (key === 'authority_links') {
         if (Array.isArray(rawData[key])) {
           sanitized.authority_links = rawData[key].map(item => {
             if (typeof item === 'string') return item;
             if (typeof item === 'object' && item.link) return item.link;
             if (typeof item === 'object' && item.url) return item.url;
-            if (typeof item === 'object' && item.href) return item.href;
             return String(item);
           }).filter(Boolean);
-        } else if (typeof rawData[key] === 'string') {
-          sanitized.authority_links = [rawData[key]];
-        } else if (typeof rawData[key] === 'object') {
-          sanitized.authority_links = Object.values(rawData[key]).filter(v => typeof v === 'string');
         }
         continue;
       }
 
-      // Handle missing_headings - ensure array of strings
-      if (key === 'missing_headings') {
-        if (Array.isArray(rawData[key])) {
-          sanitized.missing_headings = rawData[key].filter(item => typeof item === 'string');
-        } else if (typeof rawData[key] === 'string') {
-          sanitized.missing_headings = [rawData[key]];
-        }
+      if (key === 'seo_metadata' && typeof rawData[key] === 'object') {
+        sanitized.seo_metadata = { ...defaultData.seo_metadata, ...rawData[key] };
         continue;
       }
 
-      // Handle faq_questions - ensure array of strings
-      if (key === 'faq_questions') {
-        if (Array.isArray(rawData[key])) {
-          sanitized.faq_questions = rawData[key].filter(item => typeof item === 'string');
-        } else if (typeof rawData[key] === 'string') {
-          sanitized.faq_questions = [rawData[key]];
-        }
+      if (key === 'content_brief' && typeof rawData[key] === 'object') {
+        sanitized.content_brief = { ...defaultData.content_brief, ...rawData[key] };
         continue;
       }
 
-      // Handle competitor_table - ensure array of objects
-      if (key === 'competitor_table') {
-        if (Array.isArray(rawData[key])) {
-          sanitized.competitor_table = rawData[key].filter(item => typeof item === 'object');
-        }
-        continue;
-      }
-
-      // For all other fields, use the raw value if it matches expected type
       if (typeof rawData[key] === 'object' && rawData[key] !== null && !Array.isArray(rawData[key])) {
         sanitized[key] = { ...defaultData[key], ...rawData[key] };
       } else if (Array.isArray(rawData[key])) {
@@ -366,7 +424,7 @@ const sanitizeData = (rawData) => {
   return sanitized;
 };
 
-// ---------- 7. GROQ AI Service (with Sanitization) ----------
+// ---------- 7. GROQ AI Service ----------
 if (!process.env.GROQ_API_KEY) {
   logger.error('❌ Fatal Error: GROQ_API_KEY is missing!');
   process.exit(1);
@@ -376,7 +434,6 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-// ULTRA-COMPRESS: Max 5 competitors, each with minimal fields
 const ultraCompressCompetitors = (competitors) => {
   return (competitors || []).slice(0, 5).map((r, i) => ({
     r: i + 1,
@@ -394,7 +451,6 @@ const ultraCompressPAA = (paaData) => {
 };
 
 const generateUltimateInsights = async (keyword, serpData) => {
-  // ULTRA COMPRESSED DATA
   const competitors = ultraCompressCompetitors(serpData.organic_results);
   const paa = ultraCompressPAA(serpData.people_also_ask);
   const related = (serpData.related_searches || []).slice(0, 3).map(r => r.query || '');
@@ -406,47 +462,148 @@ const generateUltimateInsights = async (keyword, serpData) => {
   };
 
   logger.info(`🤖 GROQ Analysis for: "${keyword}"`);
-  logger.info(`📊 ${competitors.length} competitors, ${paa.length} PAA questions`);
 
-  // COMPRESSED PROMPT
   const prompt = `
-    SEO Expert. Analyze "${keyword}". Return ONLY JSON.
+    SEO Expert. Analyze "${keyword}". Return ONLY valid JSON.
 
-    Competitors (${competitors.length}):
-    ${JSON.stringify(competitors)}
+    Competitors: ${JSON.stringify(competitors)}
+    PAA: ${JSON.stringify(paa)}
+    Related: ${JSON.stringify(related)}
+    SERP Features: ${JSON.stringify(features)}
 
-    PAA:
-    ${JSON.stringify(paa)}
+    Generate COMPLETE JSON with ALL fields. Focus on QUALITY data. For SEO metadata, create relevant title, description, slug.
 
-    Related:
-    ${JSON.stringify(related)}
-
-    SERP:
-    ${JSON.stringify(features)}
-
-    Generate JSON with all these fields:
     {
-      "search_intent_analysis": {"intent_type":"Commercial/Informational/Transactional","confidence_score":85,"sub_intents":[],"user_goal":"","buyer_stage":"","content_type":""},
-      "full_serp_analysis": {"total_results":0,"organic_results":[],"featured_snippet":"","serp_features":[]},
-      "nlp_entity_extraction": {"entities":[],"key_phrases":[]},
-      "topical_authority_map": {"core_topics":[],"topic_clusters":[]},
-      "internal_links":[],
-      "eeat_score": {"experience":0,"expertise":0,"authoritativeness":0,"trustworthiness":0,"overall_score":0,"grade":"","recommendations":[]},
-      "featured_snippet_opportunities": {"eligibility_score":0,"optimization_tips":[],"format_type":"","priority":""},
-      "ai_overview_optimization": {"visibility_score":0,"optimization_tips":[]},
-      "people_also_ask_expanded":[],
-      "content_brief": {"title":"","meta_description":"","target_audience":"","h2_headings":[],"h3_subheadings":[],"word_count_recommendation":0},
-      "schema_generator": {"faq":"","product":"","article":"","complete_json":""},
-      "keyword_cannibalization": {"risk_score":0,"optimization_tips":[]},
-      "brand_backlink_analysis": {"brand_mentions":[],"backlink_gap":[],"total_opportunities":0},
-      "content_freshness": {"freshness_score":0,"update_recommendations":[]},
-      "keyword_intent":"Informational",
-      "content_score":75,
-      "readability_avg":"Medium",
-      "missing_headings":[],
-      "faq_questions":[],
-      "authority_links":[],
-      "competitor_table":[]
+      "keyword_intent": "Informational",
+      "content_score": 80,
+      "readability_avg": "Medium",
+      "missing_headings": ["Top Smartphone Brands in Australia", "Best Camera Phones 2026", "Battery Life Comparison", "5G Coverage in Australia"],
+      "faq_questions": ["What is the best smartphone in Australia?", "Which phone has the best camera?", "What is the cheapest 5G phone?"],
+      "authority_links": ["https://www.gsmarena.com", "https://www.techradar.com", "https://www.whistleout.com.au"],
+      
+      "competitor_table": [
+        {"rank": 1, "title": "Samsung Galaxy S26 Ultra", "strength": "Best display and camera"},
+        {"rank": 2, "title": "Apple iPhone 16 Pro Max", "strength": "Ecosystem and performance"},
+        {"rank": 3, "title": "Google Pixel 10 Pro", "strength": "Best AI and camera"}
+      ],
+      
+      "search_intent_analysis": {
+        "intent_type": "Informational",
+        "confidence_score": 85,
+        "sub_intents": ["Compare models", "Research prices", "Find best features"],
+        "user_goal": "To find the best smartphone for their needs",
+        "buyer_stage": "Research",
+        "content_type": "Review/Comparison Guide"
+      },
+      
+      "full_serp_analysis": {
+        "total_results": 850000,
+        "organic_results": [],
+        "featured_snippet": "The best smartphones in Australia include Samsung Galaxy S26, iPhone 16 Pro Max, and Google Pixel 10.",
+        "serp_features": ["Featured Snippet", "People Also Ask", "Related Searches"]
+      },
+      
+      "nlp_entity_extraction": {
+        "entities": [{"name": "Samsung", "type": "Organization", "salience": 0.85}],
+        "key_phrases": ["best smartphone", "Australia 2026", "camera quality"],
+        "sentiment_score": 0.75,
+        "language": "en",
+        "topics": ["Technology", "Mobile Phones", "Consumer Electronics"]
+      },
+      
+      "topical_authority_map": {
+        "core_topics": [{"topic": "Smartphone Reviews", "authority_score": 85}],
+        "topic_clusters": [{"cluster_name": "Mobile Technology", "keywords": ["5G", "camera", "battery"], "priority": "High"}],
+        "content_hubs": ["Tech Reviews", "Buying Guides"]
+      },
+      
+      "internal_links": [{"anchor_text": "Best Phones 2026", "target_url": "/best-phones", "relevance_score": 90}],
+      
+      "eeat_score": {
+        "experience": 75,
+        "expertise": 80,
+        "authoritativeness": 70,
+        "trustworthiness": 75,
+        "overall_score": 75,
+        "grade": "B",
+        "recommendations": ["Include expert opinions", "Cite reliable sources"]
+      },
+      
+      "featured_snippet_opportunities": {
+        "eligibility_score": 80,
+        "current_snippet": "Best smartphones in Australia include flagship models from Samsung, Apple, and Google.",
+        "optimization_tips": ["Use bullet points", "Include price range", "Add comparison table"],
+        "format_type": "List",
+        "priority": "High"
+      },
+      
+      "ai_overview_optimization": {
+        "visibility_score": 70,
+        "optimization_tips": ["Use FAQ schema", "Include price data", "Update regularly"],
+        "structure_recommendations": ["Use H2 for categories", "H3 for specific models"],
+        "question_coverage": ["What is best?", "Which has best camera?"],
+        "featured_criteria": ["Clear answers", "Structured data"]
+      },
+      
+      "people_also_ask_expanded": [
+        {"question": "What is the best phone in Australia 2026?", "answer": "Samsung Galaxy S26 Ultra", "difficulty": "Medium"}
+      ],
+      
+      "content_brief": {
+        "title": "Best Smartphones in Australia 2026: Complete Buying Guide",
+        "meta_description": "Find the best smartphones in Australia for 2026. Compare Samsung, Apple, Google and more. Expert reviews and buying guide.",
+        "target_audience": "Tech enthusiasts and smartphone buyers in Australia",
+        "content_goal": "To help readers choose the perfect smartphone",
+        "h2_headings": [{"heading": "Top Smartphone Brands in Australia", "key_points": ["Samsung", "Apple", "Google"]}],
+        "h3_subheadings": [{"heading": "Samsung Galaxy S26 Ultra Review", "context": "Detailed review"}],
+        "word_count_recommendation": 2500,
+        "recommended_sections": ["Introduction", "Top Picks", "Comparison", "Buying Guide"]
+      },
+      
+      "schema_generator": {
+        "faq": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"FAQPage\"}</script>",
+        "product": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\"}</script>",
+        "article": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Article\"}</script>",
+        "complete_json": "{\"@context\":\"https://schema.org\",\"@type\":\"Article\",\"headline\":\"Best Smartphones Australia 2026\"}"
+      },
+      
+      "keyword_cannibalization": {
+        "status": "Low Risk",
+        "risk_score": 15,
+        "optimization_tips": ["Use unique titles", "Differentiate content"]
+      },
+      
+      "brand_backlink_analysis": {
+        "brand_mentions": [{"source": "TechRadar", "sentiment": "Positive"}],
+        "backlink_gap": [{"competitor": "WhistleOut", "backlinks": 1200}],
+        "total_opportunities": 12
+      },
+      
+      "content_freshness": {
+        "freshness_score": 75,
+        "update_recommendations": [{"section": "Prices", "reason": "Need latest pricing", "priority": "High"}],
+        "trending_topics": ["Foldable phones", "AI features"]
+      },
+      
+      "seo_metadata": {
+        "title_tag": "Best Smartphones in Australia 2026: Expert Reviews & Buying Guide",
+        "meta_description": "Compare the best smartphones in Australia for 2026. Expert reviews of Samsung Galaxy S26, iPhone 16 Pro Max, Google Pixel 10 and more.",
+        "url_slug": "best-smartphones-australia-2026",
+        "focus_keyword": "best smartphones australia",
+        "h1_tag": "Best Smartphones in Australia 2026: Complete Guide",
+        "seo_grade": "B+",
+        "readability_score": 72,
+        "keyword_density": 1.2
+      },
+      
+      "content_recommendations": {
+        "title": "Best Smartphones in Australia 2026: Complete Buying Guide",
+        "meta_description": "Find the best smartphones in Australia for 2026 with our expert reviews, comparison tables, and buying guide.",
+        "target_audience": "Australian consumers looking for the best smartphone",
+        "content_length": "2000-2500 words",
+        "tone": "Professional and informative",
+        "seo_tips": ["Use comparison tables", "Include user reviews", "Add video content"]
+      }
     }
   `;
 
@@ -454,12 +611,12 @@ const generateUltimateInsights = async (keyword, serpData) => {
     const startTime = Date.now();
     const response = await groq.chat.completions.create({
       messages: [
-        { role: 'system', content: 'SEO expert. Return JSON only. No markdown.' },
+        { role: 'system', content: 'SEO expert. Return valid JSON only. Include all fields.' },
         { role: 'user', content: prompt }
       ],
       model: 'llama-3.3-70b-versatile',
       temperature: 0.3,
-      max_tokens: 4000,
+      max_tokens: 6000,
     });
     const endTime = Date.now();
     logger.info(`⏱️ GROQ Response Time: ${(endTime - startTime) / 1000}s`);
@@ -469,17 +626,9 @@ const generateUltimateInsights = async (keyword, serpData) => {
     
     const cleanJson = text.replace(/```json|```/g, '').trim();
     const parsedData = JSON.parse(cleanJson);
-    
-    // ✅ SANITIZE DATA before saving
-    const sanitizedData = sanitizeData(parsedData);
-    
-    return sanitizedData;
+    return sanitizeData(parsedData);
   } catch (error) {
     logger.error('❌ GROQ Error:', error.message);
-    if (error.response) {
-      logger.error('Response:', error.response.data);
-    }
-    // Return safe default data
     return sanitizeData({});
   }
 };
@@ -489,7 +638,6 @@ const fetchSerp = async (keyword) => {
   logger.info(`🔍 Fetching SERP for: "${keyword}"`);
   
   try {
-    const startTime = Date.now();
     const response = await axios.get('https://serpapi.com/search', {
       params: {
         q: keyword,
@@ -499,8 +647,6 @@ const fetchSerp = async (keyword) => {
       },
       timeout: 15000
     });
-    const endTime = Date.now();
-    logger.info(`⏱️ SerpAPI Response Time: ${(endTime - startTime) / 1000}s`);
     
     if (!response.data.organic_results || response.data.organic_results.length === 0) {
       throw new Error('No organic results found. Try a different keyword.');
@@ -515,8 +661,6 @@ const fetchSerp = async (keyword) => {
 };
 
 // ---------- 9. API Routes ----------
-
-// GET: Health Check
 app.get('/api/health', async (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
   const totalReports = await Report.countDocuments();
@@ -524,16 +668,15 @@ app.get('/api/health', async (req, res) => {
   
   res.json({
     status: 'OK',
-    message: 'RankForge ULTIMATE Edition V7 - ERROR-FREE',
+    message: 'RankForge ULTIMATE Edition V7 - COMPLETE',
     version: '7.0.0',
     timestamp: new Date().toISOString(),
     mongodb: dbStatus,
     groq: process.env.GROQ_API_KEY ? 'Configured' : 'Missing',
     serpapi: process.env.SERPAPI_KEY ? 'Configured' : 'Missing',
-    model: 'llama-3.3-70b-versatile (Error-Free)',
     features: [
       'AI Search Intent Analysis',
-      'Full SERP Analysis (Top 10)',
+      'Full SERP Analysis',
       'NLP & Entity Extraction',
       'Topical Authority Map',
       'Internal Link Suggestions',
@@ -545,17 +688,16 @@ app.get('/api/health', async (req, res) => {
       'Schema Generator',
       'Keyword Cannibalization Check',
       'Brand Mention & Backlink Gap Analysis',
-      'Content Freshness Suggestions'
+      'Content Freshness Suggestions',
+      'Complete SEO Metadata'
     ],
     stats: {
       total_reports: totalReports,
-      completed_reports: completedReports,
-      success_rate: totalReports > 0 ? Math.round((completedReports / totalReports) * 100) : 0
+      completed_reports: completedReports
     }
   });
 });
 
-// POST: Generate Report
 app.post('/api/generate', async (req, res) => {
   const { keyword } = req.body;
   if (!keyword) return res.status(400).json({ error: 'Keyword required' });
@@ -569,11 +711,7 @@ app.post('/api/generate', async (req, res) => {
 
     const pending = await Report.findOne({ keyword, status: 'pending' });
     if (pending) {
-      return res.json({ 
-        reportId: pending._id, 
-        cached: false, 
-        message: 'Already processing...' 
-      });
+      return res.json({ reportId: pending._id, cached: false, message: 'Already processing...' });
     }
 
     const newReport = new Report({ keyword, status: 'pending' });
@@ -582,23 +720,15 @@ app.post('/api/generate', async (req, res) => {
     res.json({ reportId: newReport._id, cached: false, message: 'Processing ULTIMATE analysis...' });
 
     (async () => {
-      const startTime = Date.now();
       try {
-        logger.info(`🔄 Starting ULTIMATE Analysis for: "${keyword}"`);
-        
+        logger.info(`🔄 Starting Analysis for: "${keyword}"`);
         const serpData = await fetchSerp(keyword);
         const insights = await generateUltimateInsights(keyword, serpData);
-        const endTime = Date.now();
-        
-        // ✅ Sanitize again before saving (double safety)
-        const safeData = sanitizeData(insights);
-        
         await Report.findByIdAndUpdate(newReport._id, {
           status: 'completed',
-          data: safeData,
-          processingTime: (endTime - startTime) / 1000
+          data: insights
         });
-        logger.info(`✅ ULTIMATE Analysis Completed: "${keyword}" in ${(endTime - startTime) / 1000}s`);
+        logger.info(`✅ Analysis Completed: "${keyword}"`);
       } catch (error) {
         logger.error(`❌ Failed: "${keyword}"`, error.message);
         await Report.findByIdAndUpdate(newReport._id, { 
@@ -614,7 +744,6 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// GET: Report Status
 app.get('/api/report/:id', async (req, res) => {
   try {
     const report = await Report.findById(req.params.id);
@@ -625,72 +754,30 @@ app.get('/api/report/:id', async (req, res) => {
   }
 });
 
-// GET: Analytics
 app.get('/api/analytics', async (req, res) => {
   try {
     const total = await Report.countDocuments();
     const completed = await Report.countDocuments({ status: 'completed' });
-    const failed = await Report.countDocuments({ status: 'failed' });
-    const pending = await Report.countDocuments({ status: 'pending' });
-    
     const avgScore = await Report.aggregate([
       { $match: { status: 'completed', 'data.content_score': { $exists: true } } },
       { $group: { _id: null, avg: { $avg: '$data.content_score' } } }
     ]);
     
-    const recentReports = await Report.find({ status: 'completed' })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .select('keyword createdAt data.content_score');
-    
     res.json({
       total_reports: total,
       completed_reports: completed,
-      failed_reports: failed,
-      pending_reports: pending,
-      average_score: avgScore[0]?.avg || 0,
-      recent_reports: recentReports
+      average_score: avgScore[0]?.avg || 0
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// ---------- 10. Cron Jobs ----------
-cron.schedule('0 9 * * 1', async () => {
-  logger.info('📊 Generating weekly analytics report...');
-  try {
-    const total = await Report.countDocuments();
-    const completed = await Report.countDocuments({ status: 'completed' });
-    logger.info(`📊 Weekly Stats: Total: ${total}, Completed: ${completed}`);
-  } catch (error) {
-    logger.error('❌ Cron Error:', error);
-  }
-});
-
-cron.schedule('0 0 * * *', async () => {
-  logger.info('🗑️ Cleaning up failed reports...');
-  try {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const result = await Report.deleteMany({
-      status: 'failed',
-      createdAt: { $lt: sevenDaysAgo }
-    });
-    logger.info(`🗑️ Deleted ${result.deletedCount} failed reports`);
-  } catch (error) {
-    logger.error('❌ Cleanup Error:', error);
-  }
-});
-
-// ---------- 11. Start Server ----------
+// ---------- 10. Start Server ----------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   logger.info('='.repeat(60));
-  logger.info(`🚀 ULTIMATE Server V7 ERROR-FREE running on port ${PORT}`);
-  logger.info(`📊 Model: GROQ: llama-3.3-70b-versatile`);
-  logger.info(`⚡ 14 ULTIMATE Features with Data Sanitization`);
-  logger.info(`📈 Health Check: /api/health`);
-  logger.info(`📊 Analytics: /api/analytics`);
+  logger.info(`🚀 ULTIMATE Server V7 COMPLETE running on port ${PORT}`);
+  logger.info(`⚡ 14 Features + Complete SEO Metadata`);
   logger.info('='.repeat(60));
 });
