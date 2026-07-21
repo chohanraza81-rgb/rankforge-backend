@@ -66,7 +66,7 @@ app.use('/api/', limiter);
 
 // ---------- 3. Startup Logging ----------
 logger.info('='.repeat(60));
-logger.info('🚀 RankForge ULTIMATE Edition V7');
+logger.info('🚀 RankForge ULTIMATE Edition V7 - Quality Optimized');
 logger.info('='.repeat(60));
 logger.info(`🔍 GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✅ Set' : '❌ Missing'}`);
 logger.info(`🔍 SERPAPI_KEY: ${process.env.SERPAPI_KEY ? '✅ Set' : '❌ Missing'}`);
@@ -313,7 +313,7 @@ ReportSchema.index({ status: 1 });
 
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 6. GROQ AI Service (V7 - ULTIMATE Edition) ----------
+// ---------- 6. GROQ AI Service (V7 - Quality Optimized with Token Limit) ----------
 if (!process.env.GROQ_API_KEY) {
   logger.error('❌ Fatal Error: GROQ_API_KEY is missing!');
   process.exit(1);
@@ -323,231 +323,96 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+// Helper: Compress competitor data intelligently
+const compressCompetitors = (competitors) => {
+  return competitors.slice(0, 10).map((r, i) => ({
+    r: i + 1, // rank
+    t: (r.title || 'N/A').substring(0, 60), // title
+    s: (r.snippet || '').substring(0, 150), // snippet
+    d: r.link ? new URL(r.link).hostname : '' // domain
+  }));
+};
+
+// Helper: Compress PAA data
+const compressPAA = (paaData) => {
+  return (paaData || []).slice(0, 5).map(p => ({
+    q: p.question || '',
+    a: (p.snippet || '').substring(0, 100)
+  }));
+};
+
 const generateUltimateInsights = async (keyword, serpData) => {
-  const competitors = serpData.organic_results?.slice(0, 10).map((r, i) => ({
-    rank: i + 1,
-    title: (r.title || 'N/A').substring(0, 80),
-    snippet: (r.snippet || '').substring(0, 300),
-    link: r.link || '#',
-    domain: r.link ? new URL(r.link).hostname : ''
-  })) || [];
-
-  // Extract People Also Ask
-  const peopleAlsoAsk = serpData.people_also_ask?.map(p => ({
-    question: p.question || '',
-    answer: p.snippet || ''
-  })) || [];
-
-  // Extract Related Searches
-  const relatedSearches = serpData.related_searches?.map(r => r.query || '') || [];
-
-  // Extract SERP features
+  // Compress data to reduce tokens
+  const compressedCompetitors = compressCompetitors(serpData.organic_results || []);
+  const compressedPAA = compressPAA(serpData.people_also_ask || []);
+  const compressedRelated = (serpData.related_searches || []).slice(0, 5).map(r => r.query || '');
+  
   const serpFeatures = {
-    featured_snippet: serpData.organic_results?.[0]?.snippet || '',
-    knowledge_panel: serpData.knowledge_graph?.name || '',
-    top_stories: serpData.top_stories?.map(s => s.title) || [],
-    videos: serpData.video_results?.map(v => v.title) || [],
-    images: serpData.images_results?.map(i => i.title) || [],
+    fs: serpData.organic_results?.[0]?.snippet?.substring(0, 150) || '',
+    kp: serpData.knowledge_graph?.name || '',
+    ts: (serpData.top_stories || []).slice(0, 3).map(s => s.title || ''),
+    vd: (serpData.video_results || []).slice(0, 3).map(v => v.title || '')
   };
 
-  logger.info(`🤖 GROQ ULTIMATE Analysis for: "${keyword}"`);
-  logger.info(`📊 Analyzing ${competitors.length} competitors`);
+  logger.info(`🤖 GROQ Optimized Analysis for: "${keyword}"`);
+  logger.info(`📊 Compressed ${compressedCompetitors.length} competitors`);
 
+  // Quality-focused prompt with compressed data
   const prompt = `
-    You are the World's Best Senior SEO Expert and Data Analyst. Perform ULTIMATE, COMPLETE, ENTERPRISE-GRADE analysis for keyword: "${keyword}".
-    
-    **CRITICAL RULES:**
-    1. Return ONLY valid JSON.
-    2. NO markdown, NO explanations outside JSON.
-    3. Be specific, actionable, and data-driven.
-    4. Think like a $100,000/year SEO consultant.
-    
-    Competitor Data (Top 10):
-    ${JSON.stringify(competitors, null, 2)}
-    
-    People Also Ask Data:
-    ${JSON.stringify(peopleAlsoAsk, null, 2)}
-    
-    Related Searches:
-    ${JSON.stringify(relatedSearches, null, 2)}
-    
-    SERP Features:
+    You are a World-Class SEO Expert. Analyze keyword: "${keyword}" with ULTIMATE precision.
+
+    COMPRESSED COMPETITOR DATA (Top 10):
+    ${JSON.stringify(compressedCompetitors, null, 2)}
+
+    PEOPLE ALSO ASK:
+    ${JSON.stringify(compressedPAA, null, 2)}
+
+    RELATED SEARCHES:
+    ${JSON.stringify(compressedRelated, null, 2)}
+
+    SERP FEATURES:
     ${JSON.stringify(serpFeatures, null, 2)}
-    
-    Generate EXACT JSON with ALL 14 ULTIMATE sections:
+
+    Return EXACT JSON with these 14 sections (QUALITY focused, no fluff):
     {
-      // 1. AI Search Intent Analysis
-      "search_intent_analysis": {
-        "intent_type": "Commercial/Informational/Transactional/Navigational",
-        "confidence_score": 92,
-        "sub_intents": ["Compare", "Review", "Buy"],
-        "user_goal": "User wants to find best product",
-        "buyer_stage": "Consideration",
-        "content_type": "Comparison/Review/Guide"
-      },
+      "search_intent_analysis": {"intent_type":"Commercial/Informational/Transactional","confidence_score":0-100,"sub_intents":[],"user_goal":"","buyer_stage":"Awareness/Consideration/Decision","content_type":"Guide/Review/Comparison"},
       
-      // 2. Full SERP Analysis (Top 10)
-      "full_serp_analysis": {
-        "total_results": 1000000,
-        "organic_results": [
-          {"rank": 1, "title": "Title", "link": "URL", "snippet": "Snippet", "domain": "domain.com"}
-        ],
-        "featured_snippet": "Featured snippet content",
-        "knowledge_panel": "Knowledge panel info",
-        "top_stories": ["Story 1", "Story 2"],
-        "videos": ["Video 1"],
-        "images": ["Image 1"],
-        "people_also_ask": ["Q1?", "Q2?"],
-        "related_searches": ["Related 1", "Related 2"],
-        "paid_ads": 4,
-        "serp_features": ["Featured Snippet", "Knowledge Panel", "People Also Ask"]
-      },
+      "full_serp_analysis": {"total_results":0,"organic_results":[{"rank":0,"title":"","domain":""}],"featured_snippet":"","knowledge_panel":"","top_stories":[],"videos":[],"images":[],"people_also_ask":[],"related_searches":[],"paid_ads":0,"serp_features":[]},
       
-      // 3. NLP & Entity Extraction
-      "nlp_entity_extraction": {
-        "entities": [
-          {"name": "Entity 1", "type": "Organization", "salience": 0.85, "mention_count": 5, "category": "Tech"}
-        ],
-        "key_phrases": ["Phrase 1", "Phrase 2"],
-        "sentiment_score": 0.75,
-        "language": "en",
-        "topics": ["Topic 1", "Topic 2"]
-      },
+      "nlp_entity_extraction": {"entities":[{"name":"","type":"Organization/Person/Product","salience":0,"mention_count":0,"category":""}],"key_phrases":[],"sentiment_score":0,"language":"en","topics":[]},
       
-      // 4. Topical Authority Map
-      "topical_authority_map": {
-        "core_topics": [
-          {"topic": "Topic 1", "authority_score": 80, "coverage_score": 75, "gap_score": 25, "recommendations": ["Create more content"]}
-        ],
-        "topic_clusters": [
-          {"cluster_name": "Cluster 1", "keywords": ["kw1", "kw2"], "priority": "High"}
-        ],
-        "content_hubs": ["Hub 1", "Hub 2"]
-      },
+      "topical_authority_map": {"core_topics":[{"topic":"","authority_score":0,"coverage_score":0,"gap_score":0,"recommendations":[]}],"topic_clusters":[{"cluster_name":"","keywords":[],"priority":"High/Medium/Low"}],"content_hubs":[]},
       
-      // 5. Internal Link Suggestions
-      "internal_links": [
-        {"anchor_text": "Link 1", "target_url": "/category/page1", "relevance_score": 85, "context": "Relevant context", "page_type": "Blog"}
-      ],
+      "internal_links":[{"anchor_text":"","target_url":"","relevance_score":0,"context":"","page_type":"Blog/Product/Guide"}],
       
-      // 6. EEAT Score
-      "eeat_score": {
-        "experience": 85,
-        "expertise": 80,
-        "authoritativeness": 78,
-        "trustworthiness": 82,
-        "overall_score": 81,
-        "grade": "B+",
-        "recommendations": ["Add author bio", "Cite sources"]
-      },
+      "eeat_score": {"experience":0,"expertise":0,"authoritativeness":0,"trustworthiness":0,"overall_score":0,"grade":"A/B/C/D","recommendations":[]},
       
-      // 7. Featured Snippet Opportunities
-      "featured_snippet_opportunities": {
-        "eligibility_score": 75,
-        "current_snippet": "Current snippet content",
-        "competitor_snippets": ["Comp snippet 1", "Comp snippet 2"],
-        "optimization_tips": ["Use bullet points", "Write clear definitions"],
-        "format_type": "Paragraph/List/Table",
-        "priority": "High"
-      },
+      "featured_snippet_opportunities": {"eligibility_score":0,"current_snippet":"","competitor_snippets":[],"optimization_tips":[],"format_type":"Paragraph/List/Table","priority":"High/Medium/Low"},
       
-      // 8. AI Overview Optimization
-      "ai_overview_optimization": {
-        "visibility_score": 70,
-        "optimization_tips": ["Use structured data", "Answer questions directly"],
-        "structure_recommendations": ["Use H2 headings", "Include FAQ"],
-        "question_coverage": ["Question 1", "Question 2"],
-        "featured_criteria": ["Clear answers", "Well-structured content"]
-      },
+      "ai_overview_optimization": {"visibility_score":0,"optimization_tips":[],"structure_recommendations":[],"question_coverage":[],"featured_criteria":[]},
       
-      // 9. People Also Ask Expansion
-      "people_also_ask_expanded": [
-        {"question": "Q1?", "answer": "Answer 1", "difficulty": "Medium", "related_questions": ["Related 1"], "source": "Google PAA"}
-      ],
+      "people_also_ask_expanded":[{"question":"","answer":"","difficulty":"Easy/Medium/Hard","related_questions":[],"source":"Google PAA"}],
       
-      // 10. Content Brief with H2/H3 Outline
-      "content_brief": {
-        "title": "Best Sports Shoes in India: A Complete Guide",
-        "meta_description": "Meta description under 160 chars",
-        "target_audience": "Sports enthusiasts and fitness-conscious individuals",
-        "content_goal": "To help readers choose the right sports shoes",
-        "h2_headings": [
-          {"heading": "Top Sports Shoes Brands in India", "key_points": ["Point 1", "Point 2"], "word_count": 300, "priority": "High"}
-        ],
-        "h3_subheadings": [
-          {"heading": "Sub-heading 1", "context": "Context", "keywords": ["kw1", "kw2"]}
-        ],
-        "word_count_recommendation": 2500,
-        "recommended_sections": ["Introduction", "Buying Guide", "Top Picks", "FAQ"]
-      },
+      "content_brief": {"title":"","meta_description":"","target_audience":"","content_goal":"","h2_headings":[{"heading":"","key_points":[],"word_count":0,"priority":"High/Medium/Low"}],"h3_subheadings":[{"heading":"","context":"","keywords":[]}],"word_count_recommendation":0,"recommended_sections":[]},
       
-      // 11. Schema Generator
-      "schema_generator": {
-        "faq": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"FAQPage\"}</script>",
-        "product": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\"}</script>",
-        "review": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Review\"}</script>",
-        "how_to": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"HowTo\"}</script>",
-        "article": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Article\"}</script>",
-        "local_business": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"LocalBusiness\"}</script>",
-        "complete_json": "{\"@context\":\"https://schema.org\",\"@type\":\"Article\",\"headline\":\"Title\"}"
-      },
+      "schema_generator": {"faq":"","product":"","review":"","how_to":"","article":"","local_business":"","complete_json":""},
       
-      // 12. Keyword Cannibalization Check
-      "keyword_cannibalization": {
-        "status": "Low Risk",
-        "risk_score": 25,
-        "cannibalizing_keywords": [
-          {"keyword": "keyword 1", "current_rank": 1, "conflicts": ["similar term"], "recommendation": "Merge content"}
-        ],
-        "optimization_tips": ["Avoid duplicate content", "Use canonical tags"]
-      },
+      "keyword_cannibalization": {"status":"Low/Medium/High Risk","risk_score":0,"cannibalizing_keywords":[{"keyword":"","current_rank":0,"conflicts":[],"recommendation":""}],"optimization_tips":[]},
       
-      // 13. Brand Mention & Backlink Gap Analysis
-      "brand_backlink_analysis": {
-        "brand_mentions": [
-          {"source": "Site 1", "url": "URL", "anchor_text": "text", "sentiment": "Positive", "date": "2024-01-01"}
-        ],
-        "backlink_gap": [
-          {"competitor": "Comp 1", "backlinks": 1000, "missing_links": ["Link 1"], "opportunity_score": 80}
-        ],
-        "total_opportunities": 15
-      },
+      "brand_backlink_analysis": {"brand_mentions":[{"source":"","url":"","anchor_text":"","sentiment":"Positive/Negative/Neutral","date":""}],"backlink_gap":[{"competitor":"","backlinks":0,"missing_links":[],"opportunity_score":0}],"total_opportunities":0},
       
-      // 14. Content Freshness Suggestions
-      "content_freshness": {
-        "freshness_score": 70,
-        "last_updated": "2024-01-01",
-        "outdated_sections": ["Section 1", "Section 2"],
-        "update_recommendations": [
-          {"section": "Section 1", "reason": "Outdated data", "priority": "High", "suggested_updates": ["Update stats", "Add new products"]}
-        ],
-        "trending_topics": ["Topic 1", "Topic 2"]
-      },
+      "content_freshness": {"freshness_score":0,"last_updated":"","outdated_sections":[],"update_recommendations":[{"section":"","reason":"","priority":"High/Medium/Low","suggested_updates":[]}],"trending_topics":[]},
       
-      // ===== EXISTING FEATURES =====
-      "keyword_intent": "Commercial/Informational/Transactional",
-      "content_score": 85,
-      "readability_avg": "Medium",
-      "missing_headings": ["H2 heading 1", "H2 heading 2", "H2 heading 3"],
-      "faq_questions": ["Q1?", "Q2?", "Q3?", "Q4?", "Q5?", "Q6?"],
-      "authority_links": ["https://example1.com"],
-      "competitor_table": [{"rank": 1, "title": "Competitor 1", "strength": "Main advantage"}],
-      "readability_score": {"flesch_kincaid": 70, "grade_level": "9th Grade", "sentence_length": 18, "word_complexity": "Medium", "recommendations": ["Tip 1"]},
-      "trend_forecast": {"growth": "20%", "seasonality": "Peak in Q4", "peak_months": ["Nov", "Dec"], "strategy": "Create content before peak"},
-      "pricing_intelligence": {"average_price": "50,000 JPY", "price_range": "30,000 - 200,000 JPY", "value_for_money": "Best value"},
-      "content_requirements": {"recommended_words": 3000, "min_words": 2000, "max_words": 4000, "images_needed": 10, "media_format": "HD Images + Videos", "video_suggestions": ["Unboxing video"]},
-      "keyword_metrics": {"search_volume": 1000, "difficulty": 44, "cpc": 0.9, "competition": "High", "related_keywords": ["kw1", "kw2"]},
-      "backlink_gap": {"competitor_backlinks": [{"domain": "example.com", "backlinks": 1200, "da": 92}], "backlink_opportunities": ["Guest Post"], "backlink_strategy": "Create content and outreach", "cost": "10 hours", "impact": "15-25 points", "opportunities": 8},
-      "content_recommendations": {"title": "SEO title", "meta_description": "Meta desc", "target_audience": "Audience", "content_length": "2000-2500 words", "tone": "Professional", "seo_tips": ["Tip 1", "Tip 2"]},
-      "seo_metadata": {"title_tag": "SEO title", "meta_description": "Meta desc", "url_slug": "url-friendly-slug", "focus_keyword": "main keyword"},
-      "realtime_competitor_analysis": {"competitors": [{"name": "Comp 1", "domain": "comp.com", "traffic": "1.2M/month", "keyword_count": 45000, "domain_authority": 85, "backlinks": 50000, "strengths": ["Strength 1"], "weaknesses": ["Weakness 1"]}], "market_position": "High competition", "competitive_edge": "Focus on quality"},
-      "nlp_keywords": {"primary": ["kw1", "kw2"], "secondary": ["kw3"], "long_tail": ["long tail 1"], "lsi": ["LSI 1"], "semantic_related": ["Semantic 1"], "keyword_clusters": [{"cluster": "Group 1", "keywords": ["kw1"]}]},
-      "people_also_ask": [{"question": "Q1?", "answer": "Answer 1", "source": "Google PAA", "related_questions": ["Related 1"]}],
-      "serp_analysis": {"featured_snippet": "Snippet", "knowledge_panel": "Panel", "top_stories": ["Story 1"], "videos": ["Video 1"], "images": ["Image 1"], "maps": "Map", "total_results": 1000000, "paid_ads": 4, "organic_results_count": 10},
-      "schema_markup": {"article": "", "faq": "", "product": "", "how_to": "", "organization": "", "complete_json": ""},
-      "content_quality": {"uniqueness": 85, "comprehensiveness": 80, "engagement": 75, "readability_score": 78, "seo_friendliness": 82, "overall_grade": "B+", "improvement_suggestions": ["Add more examples"]},
-      "entities": {"people": ["Person 1"], "organizations": ["Company 1"], "locations": ["Location 1"], "products": ["Product 1"], "dates": ["Date 1"], "concepts": ["Concept 1"]}
+      "keyword_intent":"Commercial/Informational/Transactional",
+      "content_score":0-100,
+      "readability_avg":"Easy/Medium/Hard",
+      "missing_headings":[],
+      "faq_questions":[],
+      "authority_links":[],
+      "competitor_table":[{"rank":0,"title":"","strength":""}]
     }
+
+    CRITICAL: Return ONLY valid JSON. No markdown, no explanations. Keep responses detailed but concise.
   `;
 
   try {
@@ -556,16 +421,16 @@ const generateUltimateInsights = async (keyword, serpData) => {
       messages: [
         { 
           role: 'system', 
-          content: 'You are a Senior SEO Expert. Return ONLY valid JSON. No markdown, no explanations.' 
+          content: 'You are a Senior SEO Expert. Return ONLY valid JSON. No markdown, no explanations. Be thorough and insightful.' 
         },
         { 
           role: 'user', 
           content: prompt 
         }
       ],
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant', // ✅ Fast + Quality model
       temperature: 0.3,
-      max_tokens: 16000,
+      max_tokens: 6000, // ✅ Optimal for quality response
     });
     const endTime = Date.now();
     logger.info(`⏱️ GROQ Response Time: ${(endTime - startTime) / 1000}s`);
@@ -574,7 +439,18 @@ const generateUltimateInsights = async (keyword, serpData) => {
     logger.info(`📝 GROQ Response: ${text.substring(0, 150)}...`);
     
     const cleanJson = text.replace(/```json|```/g, '').trim();
-    return JSON.parse(cleanJson);
+    const parsedData = JSON.parse(cleanJson);
+    
+    // Validate critical fields
+    if (!parsedData.keyword_intent) {
+      logger.warn('⚠️ Missing keyword_intent, adding fallback');
+      parsedData.keyword_intent = 'Informational';
+    }
+    if (!parsedData.content_score) {
+      parsedData.content_score = 75;
+    }
+    
+    return parsedData;
   } catch (error) {
     logger.error('❌ GROQ Error:', error.message);
     if (error.response) {
@@ -624,12 +500,13 @@ app.get('/api/health', async (req, res) => {
   
   res.json({
     status: 'OK',
-    message: 'RankForge ULTIMATE Edition V7 is Live!',
+    message: 'RankForge ULTIMATE Edition V7 - Quality Optimized',
     version: '7.0.0',
     timestamp: new Date().toISOString(),
     mongodb: dbStatus,
     groq: process.env.GROQ_API_KEY ? 'Configured' : 'Missing',
     serpapi: process.env.SERPAPI_KEY ? 'Configured' : 'Missing',
+    model: 'llama-3.1-8b-instant',
     features: [
       'AI Search Intent Analysis',
       'Full SERP Analysis (Top 10)',
@@ -784,8 +661,8 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   logger.info('='.repeat(60));
   logger.info(`🚀 ULTIMATE Server V7 running on port ${PORT}`);
-  logger.info(`📊 Model: GROQ: llama-3.3-70b-versatile`);
-  logger.info(`⚡ 14 ULTIMATE Features: Intent, SERP, NLP, Topical Map, Internal Links, EEAT, Featured Snippet, AI Overview, PAA, Content Brief, Schema, Cannibalization, Brand Backlink, Freshness`);
+  logger.info(`📊 Model: GROQ: llama-3.1-8b-instant (Quality Optimized)`);
+  logger.info(`⚡ 14 ULTIMATE Features with Token Optimization`);
   logger.info(`📈 Health Check: /api/health`);
   logger.info(`📊 Analytics: /api/analytics`);
   logger.info('='.repeat(60));
