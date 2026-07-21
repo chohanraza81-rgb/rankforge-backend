@@ -66,7 +66,7 @@ app.use('/api/', limiter);
 
 // ---------- 3. Startup Logging ----------
 logger.info('='.repeat(60));
-logger.info('🚀 RankForge Enterprise Backend V6 - POWER EDITION');
+logger.info('🚀 RankForge ULTIMATE Edition V7');
 logger.info('='.repeat(60));
 logger.info(`🔍 GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✅ Set' : '❌ Missing'}`);
 logger.info(`🔍 SERPAPI_KEY: ${process.env.SERPAPI_KEY ? '✅ Set' : '❌ Missing'}`);
@@ -83,14 +83,204 @@ mongoose.connect(process.env.MONGODB_URI, {
     process.exit(1);
   });
 
-// ---------- 5. MongoDB Schema (V6 - Power Edition) ----------
+// ---------- 5. MongoDB Schema (V7 - ULTIMATE Edition) ----------
 const ReportSchema = new mongoose.Schema({
   keyword: { type: String, required: true, index: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
   errorMessage: { type: String, default: '' },
   processingTime: { type: Number, default: 0 },
   data: {
-    // Basic
+    // ===== 14 ULTIMATE FEATURES =====
+
+    // 1. AI Search Intent Analysis
+    search_intent_analysis: {
+      intent_type: String,
+      confidence_score: Number,
+      sub_intents: [String],
+      user_goal: String,
+      buyer_stage: String,
+      content_type: String
+    },
+
+    // 2. Full SERP Analysis (Top 10)
+    full_serp_analysis: {
+      total_results: Number,
+      organic_results: [{
+        rank: Number,
+        title: String,
+        link: String,
+        snippet: String,
+        domain: String
+      }],
+      featured_snippet: String,
+      knowledge_panel: String,
+      top_stories: [String],
+      videos: [String],
+      images: [String],
+      people_also_ask: [String],
+      related_searches: [String],
+      paid_ads: Number,
+      serp_features: [String]
+    },
+
+    // 3. NLP & Entity Extraction
+    nlp_entity_extraction: {
+      entities: [{
+        name: String,
+        type: String,
+        salience: Number,
+        mention_count: Number,
+        category: String
+      }],
+      key_phrases: [String],
+      sentiment_score: Number,
+      language: String,
+      topics: [String]
+    },
+
+    // 4. Topical Authority Map
+    topical_authority_map: {
+      core_topics: [{
+        topic: String,
+        authority_score: Number,
+        coverage_score: Number,
+        gap_score: Number,
+        recommendations: [String]
+      }],
+      topic_clusters: [{
+        cluster_name: String,
+        keywords: [String],
+        priority: String
+      }],
+      content_hubs: [String]
+    },
+
+    // 5. Internal Link Suggestions
+    internal_links: [{
+      anchor_text: String,
+      target_url: String,
+      relevance_score: Number,
+      context: String,
+      page_type: String
+    }],
+
+    // 6. EEAT Score
+    eeat_score: {
+      experience: Number,
+      expertise: Number,
+      authoritativeness: Number,
+      trustworthiness: Number,
+      overall_score: Number,
+      grade: String,
+      recommendations: [String]
+    },
+
+    // 7. Featured Snippet Opportunities
+    featured_snippet_opportunities: {
+      eligibility_score: Number,
+      current_snippet: String,
+      competitor_snippets: [String],
+      optimization_tips: [String],
+      format_type: String,
+      priority: String
+    },
+
+    // 8. AI Overview Optimization
+    ai_overview_optimization: {
+      visibility_score: Number,
+      optimization_tips: [String],
+      structure_recommendations: [String],
+      question_coverage: [String],
+      featured_criteria: [String]
+    },
+
+    // 9. People Also Ask Expansion
+    people_also_ask_expanded: [{
+      question: String,
+      answer: String,
+      difficulty: String,
+      related_questions: [String],
+      source: String
+    }],
+
+    // 10. Content Brief with H2/H3 Outline
+    content_brief: {
+      title: String,
+      meta_description: String,
+      target_audience: String,
+      content_goal: String,
+      h2_headings: [{
+        heading: String,
+        key_points: [String],
+        word_count: Number,
+        priority: String
+      }],
+      h3_subheadings: [{
+        heading: String,
+        context: String,
+        keywords: [String]
+      }],
+      word_count_recommendation: Number,
+      recommended_sections: [String]
+    },
+
+    // 11. Schema Generator
+    schema_generator: {
+      faq: String,
+      product: String,
+      review: String,
+      how_to: String,
+      article: String,
+      local_business: String,
+      complete_json: String
+    },
+
+    // 12. Keyword Cannibalization Check
+    keyword_cannibalization: {
+      status: String,
+      risk_score: Number,
+      cannibalizing_keywords: [{
+        keyword: String,
+        current_rank: Number,
+        conflicts: [String],
+        recommendation: String
+      }],
+      optimization_tips: [String]
+    },
+
+    // 13. Brand Mention & Backlink Gap Analysis
+    brand_backlink_analysis: {
+      brand_mentions: [{
+        source: String,
+        url: String,
+        anchor_text: String,
+        sentiment: String,
+        date: String
+      }],
+      backlink_gap: [{
+        competitor: String,
+        backlinks: Number,
+        missing_links: [String],
+        opportunity_score: Number
+      }],
+      total_opportunities: Number
+    },
+
+    // 14. Content Freshness Suggestions
+    content_freshness: {
+      freshness_score: Number,
+      last_updated: String,
+      outdated_sections: [String],
+      update_recommendations: [{
+        section: String,
+        reason: String,
+        priority: String,
+        suggested_updates: [String]
+      }],
+      trending_topics: [String]
+    },
+
+    // ===== EXISTING FEATURES =====
     keyword_intent: String,
     content_score: Number,
     readability_avg: String,
@@ -98,165 +288,22 @@ const ReportSchema = new mongoose.Schema({
     faq_questions: [String],
     authority_links: [String],
     competitor_table: [Object],
-    
-    // Readability Score
-    readability_score: {
-      flesch_kincaid: Number,
-      grade_level: String,
-      sentence_length: Number,
-      word_complexity: String,
-      recommendations: [String]
-    },
-    
-    // Trend Forecast
-    trend_forecast: {
-      growth: String,
-      seasonality: String,
-      peak_months: [String],
-      strategy: String
-    },
-    
-    // Pricing Intelligence
-    pricing_intelligence: {
-      average_price: String,
-      price_range: String,
-      value_for_money: String
-    },
-    
-    // Content Requirements
-    content_requirements: {
-      recommended_words: Number,
-      min_words: Number,
-      max_words: Number,
-      images_needed: Number,
-      media_format: String,
-      video_suggestions: [String]
-    },
-    
-    // Keyword Metrics
-    keyword_metrics: {
-      search_volume: Number,
-      difficulty: Number,
-      cpc: Number,
-      competition: String,
-      related_keywords: [String]
-    },
-    
-    // Backlink Gap
-    backlink_gap: {
-      competitor_backlinks: [Object],
-      backlink_opportunities: [String],
-      backlink_strategy: String,
-      cost: String,
-      impact: String,
-      opportunities: Number
-    },
-    
-    // Content Strategy
-    content_recommendations: {
-      title: String,
-      meta_description: String,
-      target_audience: String,
-      content_length: String,
-      tone: String,
-      seo_tips: [String]
-    },
-    
-    // SEO Metadata
-    seo_metadata: {
-      title_tag: String,
-      meta_description: String,
-      url_slug: String,
-      focus_keyword: String
-    },
-
-    // ===== 🆕 V6 POWER EDITION FEATURES =====
-    
-    // 1. Real-time Competitor Analysis
-    realtime_competitor_analysis: {
-      competitors: [{
-        name: String,
-        domain: String,
-        traffic: String,
-        keyword_count: Number,
-        domain_authority: Number,
-        backlinks: Number,
-        strengths: [String],
-        weaknesses: [String]
-      }],
-      market_position: String,
-      competitive_edge: String
-    },
-    
-    // 2. NLP Keywords (Semantic Analysis)
-    nlp_keywords: {
-      primary: [String],
-      secondary: [String],
-      long_tail: [String],
-      lsi: [String],
-      semantic_related: [String],
-      keyword_clusters: [Object]
-    },
-    
-    // 3. People Also Ask (PAA)
-    people_also_ask: [{
-      question: String,
-      answer: String,
-      source: String,
-      related_questions: [String]
-    }],
-    
-    // 4. SERP Analysis
-    serp_analysis: {
-      featured_snippet: String,
-      knowledge_panel: String,
-      top_stories: [String],
-      videos: [String],
-      images: [String],
-      maps: String,
-      total_results: Number,
-      paid_ads: Number,
-      organic_results_count: Number
-    },
-    
-    // 5. Schema Markup (Ready-to-use JSON-LD)
-    schema_markup: {
-      article: String,
-      faq: String,
-      product: String,
-      how_to: String,
-      organization: String,
-      complete_json: String
-    },
-    
-    // 6. Internal Links Suggestions
-    internal_links: [{
-      anchor_text: String,
-      target_url: String,
-      relevance_score: Number,
-      context: String
-    }],
-    
-    // 7. Content Quality Score (Detailed)
-    content_quality: {
-      uniqueness: Number,
-      comprehensiveness: Number,
-      engagement: Number,
-      readability_score: Number,
-      seo_friendliness: Number,
-      overall_grade: String,
-      improvement_suggestions: [String]
-    },
-    
-    // 8. Entity Recognition
-    entities: {
-      people: [String],
-      organizations: [String],
-      locations: [String],
-      products: [String],
-      dates: [String],
-      concepts: [String]
-    }
+    readability_score: Object,
+    trend_forecast: Object,
+    pricing_intelligence: Object,
+    content_requirements: Object,
+    keyword_metrics: Object,
+    backlink_gap: Object,
+    content_recommendations: Object,
+    seo_metadata: Object,
+    realtime_competitor_analysis: Object,
+    nlp_keywords: Object,
+    people_also_ask: [Object],
+    serp_analysis: Object,
+    schema_markup: Object,
+    internal_links: [Object],
+    content_quality: Object,
+    entities: Object
   },
   createdAt: { type: Date, default: Date.now, expires: 2592000 }
 });
@@ -266,7 +313,7 @@ ReportSchema.index({ status: 1 });
 
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 6. GROQ AI Service (V6 - Power Edition) ----------
+// ---------- 6. GROQ AI Service (V7 - ULTIMATE Edition) ----------
 if (!process.env.GROQ_API_KEY) {
   logger.error('❌ Fatal Error: GROQ_API_KEY is missing!');
   process.exit(1);
@@ -276,19 +323,23 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-const generatePowerInsights = async (keyword, serpData) => {
-  const competitors = serpData.organic_results?.slice(0, 5).map((r, i) => ({
+const generateUltimateInsights = async (keyword, serpData) => {
+  const competitors = serpData.organic_results?.slice(0, 10).map((r, i) => ({
     rank: i + 1,
     title: (r.title || 'N/A').substring(0, 80),
-    snippet: (r.snippet || '').substring(0, 250),
-    link: r.link || '#'
+    snippet: (r.snippet || '').substring(0, 300),
+    link: r.link || '#',
+    domain: r.link ? new URL(r.link).hostname : ''
   })) || [];
 
-  // Extract People Also Ask from SERP
+  // Extract People Also Ask
   const peopleAlsoAsk = serpData.people_also_ask?.map(p => ({
     question: p.question || '',
     answer: p.snippet || ''
   })) || [];
+
+  // Extract Related Searches
+  const relatedSearches = serpData.related_searches?.map(r => r.query || '') || [];
 
   // Extract SERP features
   const serpFeatures = {
@@ -299,175 +350,203 @@ const generatePowerInsights = async (keyword, serpData) => {
     images: serpData.images_results?.map(i => i.title) || [],
   };
 
-  logger.info(`🤖 GROQ Power Analysis for: "${keyword}"`);
+  logger.info(`🤖 GROQ ULTIMATE Analysis for: "${keyword}"`);
   logger.info(`📊 Analyzing ${competitors.length} competitors`);
 
   const prompt = `
-    You are a Senior SEO Expert and Data Analyst. Perform ULTIMATE, POWERFUL analysis for keyword: "${keyword}".
+    You are the World's Best Senior SEO Expert and Data Analyst. Perform ULTIMATE, COMPLETE, ENTERPRISE-GRADE analysis for keyword: "${keyword}".
     
     **CRITICAL RULES:**
     1. Return ONLY valid JSON.
     2. NO markdown, NO explanations outside JSON.
     3. Be specific, actionable, and data-driven.
+    4. Think like a $100,000/year SEO consultant.
     
-    Competitor Data (Top 5):
+    Competitor Data (Top 10):
     ${JSON.stringify(competitors, null, 2)}
     
     People Also Ask Data:
     ${JSON.stringify(peopleAlsoAsk, null, 2)}
     
+    Related Searches:
+    ${JSON.stringify(relatedSearches, null, 2)}
+    
     SERP Features:
     ${JSON.stringify(serpFeatures, null, 2)}
     
-    Generate EXACT JSON with ALL these sections:
+    Generate EXACT JSON with ALL 14 ULTIMATE sections:
     {
-      "keyword_intent": "Commercial/Informational/Transactional",
-      "content_score": 85,
-      "readability_avg": "Easy/Medium/Hard",
-      
-      "missing_headings": ["H2 heading 1", "H2 heading 2", "H2 heading 3", "H2 heading 4", "H2 heading 5", "H2 heading 6"],
-      "faq_questions": ["Q1?", "Q2?", "Q3?", "Q4?", "Q5?", "Q6?"],
-      "authority_links": ["https://example1.com", "https://example2.com", "https://example3.com"],
-      
-      "competitor_table": [
-        {"rank": 1, "title": "Competitor 1", "strength": "Main advantage"},
-        {"rank": 2, "title": "Competitor 2", "strength": "Main advantage"},
-        {"rank": 3, "title": "Competitor 3", "strength": "Main advantage"}
-      ],
-      
-      "readability_score": {
-        "flesch_kincaid": 70,
-        "grade_level": "9th Grade",
-        "sentence_length": 18,
-        "word_complexity": "Medium",
-        "recommendations": ["Use shorter sentences", "Simplify vocabulary"]
+      // 1. AI Search Intent Analysis
+      "search_intent_analysis": {
+        "intent_type": "Commercial/Informational/Transactional/Navigational",
+        "confidence_score": 92,
+        "sub_intents": ["Compare", "Review", "Buy"],
+        "user_goal": "User wants to find best product",
+        "buyer_stage": "Consideration",
+        "content_type": "Comparison/Review/Guide"
       },
       
-      "trend_forecast": {
-        "growth": "20%",
-        "seasonality": "Peak in Q4 and Q1",
-        "peak_months": ["November", "December", "January"],
-        "strategy": "Create content before peak season"
-      },
-      
-      "pricing_intelligence": {
-        "average_price": "50,000 JPY",
-        "price_range": "30,000 - 200,000 JPY",
-        "value_for_money": "Best value models"
-      },
-      
-      "content_requirements": {
-        "recommended_words": 3000,
-        "min_words": 2000,
-        "max_words": 4000,
-        "images_needed": 10,
-        "media_format": "HD Images + Videos",
-        "video_suggestions": ["Unboxing video", "Comparison video"]
-      },
-      
-      "keyword_metrics": {
-        "search_volume": 1000,
-        "difficulty": 44,
-        "cpc": 0.9,
-        "competition": "High",
-        "related_keywords": ["keyword 1", "keyword 2", "keyword 3", "keyword 4", "keyword 5"]
-      },
-      
-      "backlink_gap": {
-        "competitor_backlinks": [
-          {"domain": "example1.com", "backlinks": 1200, "da": 92},
-          {"domain": "example2.com", "backlinks": 500, "da": 65}
-        ],
-        "backlink_opportunities": ["TechRadar Guest Post", "Statista Resource Page"],
-        "backlink_strategy": "Create high-quality content and reach out",
-        "cost": "10 hours content + 5 hours outreach per week",
-        "impact": "15-25 points",
-        "opportunities": 8
-      },
-      
-      "content_recommendations": {
-        "title": "SEO-optimized title",
-        "meta_description": "Meta description under 160 chars",
-        "target_audience": "Target audience description",
-        "content_length": "2000-2500 words",
-        "tone": "Professional",
-        "seo_tips": ["Tip 1", "Tip 2", "Tip 3", "Tip 4"]
-      },
-      
-      "seo_metadata": {
-        "title_tag": "SEO title tag",
-        "meta_description": "SEO meta description",
-        "url_slug": "url-friendly-slug",
-        "focus_keyword": "main keyword"
-      },
-
-      "realtime_competitor_analysis": {
-        "competitors": [
-          {"name": "Competitor 1", "domain": "comp1.com", "traffic": "1.2M/month", "keyword_count": 45000, "domain_authority": 85, "backlinks": 50000, "strengths": ["High DA", "Content depth"], "weaknesses": ["Slow loading"]},
-          {"name": "Competitor 2", "domain": "comp2.com", "traffic": "800K/month", "keyword_count": 35000, "domain_authority": 78, "backlinks": 35000, "strengths": ["Brand authority"], "weaknesses": ["Limited content"]}
-        ],
-        "market_position": "High competition market",
-        "competitive_edge": "Focus on depth and quality"
-      },
-      
-      "nlp_keywords": {
-        "primary": ["keyword 1", "keyword 2", "keyword 3"],
-        "secondary": ["keyword 4", "keyword 5", "keyword 6"],
-        "long_tail": ["long tail 1", "long tail 2", "long tail 3"],
-        "lsi": ["LSI 1", "LSI 2", "LSI 3"],
-        "semantic_related": ["Semantic 1", "Semantic 2"],
-        "keyword_clusters": [{"cluster": "Group 1", "keywords": ["kw1", "kw2"]}]
-      },
-      
-      "people_also_ask": [
-        {"question": "Question 1?", "answer": "Answer 1", "source": "Google PAA", "related_questions": ["Related 1", "Related 2"]},
-        {"question": "Question 2?", "answer": "Answer 2", "source": "Google PAA", "related_questions": ["Related 3"]}
-      ],
-      
-      "serp_analysis": {
-        "featured_snippet": "Featured snippet content",
-        "knowledge_panel": "Knowledge panel data",
-        "top_stories": ["Story 1", "Story 2"],
-        "videos": ["Video 1", "Video 2"],
-        "images": ["Image 1", "Image 2"],
-        "maps": "Map data",
+      // 2. Full SERP Analysis (Top 10)
+      "full_serp_analysis": {
         "total_results": 1000000,
+        "organic_results": [
+          {"rank": 1, "title": "Title", "link": "URL", "snippet": "Snippet", "domain": "domain.com"}
+        ],
+        "featured_snippet": "Featured snippet content",
+        "knowledge_panel": "Knowledge panel info",
+        "top_stories": ["Story 1", "Story 2"],
+        "videos": ["Video 1"],
+        "images": ["Image 1"],
+        "people_also_ask": ["Q1?", "Q2?"],
+        "related_searches": ["Related 1", "Related 2"],
         "paid_ads": 4,
-        "organic_results_count": 10
+        "serp_features": ["Featured Snippet", "Knowledge Panel", "People Also Ask"]
       },
       
-      "schema_markup": {
-        "article": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Article\"}</script>",
+      // 3. NLP & Entity Extraction
+      "nlp_entity_extraction": {
+        "entities": [
+          {"name": "Entity 1", "type": "Organization", "salience": 0.85, "mention_count": 5, "category": "Tech"}
+        ],
+        "key_phrases": ["Phrase 1", "Phrase 2"],
+        "sentiment_score": 0.75,
+        "language": "en",
+        "topics": ["Topic 1", "Topic 2"]
+      },
+      
+      // 4. Topical Authority Map
+      "topical_authority_map": {
+        "core_topics": [
+          {"topic": "Topic 1", "authority_score": 80, "coverage_score": 75, "gap_score": 25, "recommendations": ["Create more content"]}
+        ],
+        "topic_clusters": [
+          {"cluster_name": "Cluster 1", "keywords": ["kw1", "kw2"], "priority": "High"}
+        ],
+        "content_hubs": ["Hub 1", "Hub 2"]
+      },
+      
+      // 5. Internal Link Suggestions
+      "internal_links": [
+        {"anchor_text": "Link 1", "target_url": "/category/page1", "relevance_score": 85, "context": "Relevant context", "page_type": "Blog"}
+      ],
+      
+      // 6. EEAT Score
+      "eeat_score": {
+        "experience": 85,
+        "expertise": 80,
+        "authoritativeness": 78,
+        "trustworthiness": 82,
+        "overall_score": 81,
+        "grade": "B+",
+        "recommendations": ["Add author bio", "Cite sources"]
+      },
+      
+      // 7. Featured Snippet Opportunities
+      "featured_snippet_opportunities": {
+        "eligibility_score": 75,
+        "current_snippet": "Current snippet content",
+        "competitor_snippets": ["Comp snippet 1", "Comp snippet 2"],
+        "optimization_tips": ["Use bullet points", "Write clear definitions"],
+        "format_type": "Paragraph/List/Table",
+        "priority": "High"
+      },
+      
+      // 8. AI Overview Optimization
+      "ai_overview_optimization": {
+        "visibility_score": 70,
+        "optimization_tips": ["Use structured data", "Answer questions directly"],
+        "structure_recommendations": ["Use H2 headings", "Include FAQ"],
+        "question_coverage": ["Question 1", "Question 2"],
+        "featured_criteria": ["Clear answers", "Well-structured content"]
+      },
+      
+      // 9. People Also Ask Expansion
+      "people_also_ask_expanded": [
+        {"question": "Q1?", "answer": "Answer 1", "difficulty": "Medium", "related_questions": ["Related 1"], "source": "Google PAA"}
+      ],
+      
+      // 10. Content Brief with H2/H3 Outline
+      "content_brief": {
+        "title": "Best Sports Shoes in India: A Complete Guide",
+        "meta_description": "Meta description under 160 chars",
+        "target_audience": "Sports enthusiasts and fitness-conscious individuals",
+        "content_goal": "To help readers choose the right sports shoes",
+        "h2_headings": [
+          {"heading": "Top Sports Shoes Brands in India", "key_points": ["Point 1", "Point 2"], "word_count": 300, "priority": "High"}
+        ],
+        "h3_subheadings": [
+          {"heading": "Sub-heading 1", "context": "Context", "keywords": ["kw1", "kw2"]}
+        ],
+        "word_count_recommendation": 2500,
+        "recommended_sections": ["Introduction", "Buying Guide", "Top Picks", "FAQ"]
+      },
+      
+      // 11. Schema Generator
+      "schema_generator": {
         "faq": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"FAQPage\"}</script>",
         "product": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\"}</script>",
+        "review": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Review\"}</script>",
         "how_to": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"HowTo\"}</script>",
-        "organization": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Organization\"}</script>",
+        "article": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Article\"}</script>",
+        "local_business": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"LocalBusiness\"}</script>",
         "complete_json": "{\"@context\":\"https://schema.org\",\"@type\":\"Article\",\"headline\":\"Title\"}"
       },
       
-      "internal_links": [
-        {"anchor_text": "Link 1", "target_url": "/category/page1", "relevance_score": 85, "context": "Relevant context"},
-        {"anchor_text": "Link 2", "target_url": "/category/page2", "relevance_score": 75, "context": "Relevant context"}
-      ],
-      
-      "content_quality": {
-        "uniqueness": 85,
-        "comprehensiveness": 80,
-        "engagement": 75,
-        "readability_score": 78,
-        "seo_friendliness": 82,
-        "overall_grade": "B+",
-        "improvement_suggestions": ["Add more examples", "Include data points", "Improve readability"]
+      // 12. Keyword Cannibalization Check
+      "keyword_cannibalization": {
+        "status": "Low Risk",
+        "risk_score": 25,
+        "cannibalizing_keywords": [
+          {"keyword": "keyword 1", "current_rank": 1, "conflicts": ["similar term"], "recommendation": "Merge content"}
+        ],
+        "optimization_tips": ["Avoid duplicate content", "Use canonical tags"]
       },
       
-      "entities": {
-        "people": ["Person 1", "Person 2"],
-        "organizations": ["Company 1", "Company 2"],
-        "locations": ["Location 1", "Location 2"],
-        "products": ["Product 1", "Product 2"],
-        "dates": ["Date 1"],
-        "concepts": ["Concept 1", "Concept 2"]
-      }
+      // 13. Brand Mention & Backlink Gap Analysis
+      "brand_backlink_analysis": {
+        "brand_mentions": [
+          {"source": "Site 1", "url": "URL", "anchor_text": "text", "sentiment": "Positive", "date": "2024-01-01"}
+        ],
+        "backlink_gap": [
+          {"competitor": "Comp 1", "backlinks": 1000, "missing_links": ["Link 1"], "opportunity_score": 80}
+        ],
+        "total_opportunities": 15
+      },
+      
+      // 14. Content Freshness Suggestions
+      "content_freshness": {
+        "freshness_score": 70,
+        "last_updated": "2024-01-01",
+        "outdated_sections": ["Section 1", "Section 2"],
+        "update_recommendations": [
+          {"section": "Section 1", "reason": "Outdated data", "priority": "High", "suggested_updates": ["Update stats", "Add new products"]}
+        ],
+        "trending_topics": ["Topic 1", "Topic 2"]
+      },
+      
+      // ===== EXISTING FEATURES =====
+      "keyword_intent": "Commercial/Informational/Transactional",
+      "content_score": 85,
+      "readability_avg": "Medium",
+      "missing_headings": ["H2 heading 1", "H2 heading 2", "H2 heading 3"],
+      "faq_questions": ["Q1?", "Q2?", "Q3?", "Q4?", "Q5?", "Q6?"],
+      "authority_links": ["https://example1.com"],
+      "competitor_table": [{"rank": 1, "title": "Competitor 1", "strength": "Main advantage"}],
+      "readability_score": {"flesch_kincaid": 70, "grade_level": "9th Grade", "sentence_length": 18, "word_complexity": "Medium", "recommendations": ["Tip 1"]},
+      "trend_forecast": {"growth": "20%", "seasonality": "Peak in Q4", "peak_months": ["Nov", "Dec"], "strategy": "Create content before peak"},
+      "pricing_intelligence": {"average_price": "50,000 JPY", "price_range": "30,000 - 200,000 JPY", "value_for_money": "Best value"},
+      "content_requirements": {"recommended_words": 3000, "min_words": 2000, "max_words": 4000, "images_needed": 10, "media_format": "HD Images + Videos", "video_suggestions": ["Unboxing video"]},
+      "keyword_metrics": {"search_volume": 1000, "difficulty": 44, "cpc": 0.9, "competition": "High", "related_keywords": ["kw1", "kw2"]},
+      "backlink_gap": {"competitor_backlinks": [{"domain": "example.com", "backlinks": 1200, "da": 92}], "backlink_opportunities": ["Guest Post"], "backlink_strategy": "Create content and outreach", "cost": "10 hours", "impact": "15-25 points", "opportunities": 8},
+      "content_recommendations": {"title": "SEO title", "meta_description": "Meta desc", "target_audience": "Audience", "content_length": "2000-2500 words", "tone": "Professional", "seo_tips": ["Tip 1", "Tip 2"]},
+      "seo_metadata": {"title_tag": "SEO title", "meta_description": "Meta desc", "url_slug": "url-friendly-slug", "focus_keyword": "main keyword"},
+      "realtime_competitor_analysis": {"competitors": [{"name": "Comp 1", "domain": "comp.com", "traffic": "1.2M/month", "keyword_count": 45000, "domain_authority": 85, "backlinks": 50000, "strengths": ["Strength 1"], "weaknesses": ["Weakness 1"]}], "market_position": "High competition", "competitive_edge": "Focus on quality"},
+      "nlp_keywords": {"primary": ["kw1", "kw2"], "secondary": ["kw3"], "long_tail": ["long tail 1"], "lsi": ["LSI 1"], "semantic_related": ["Semantic 1"], "keyword_clusters": [{"cluster": "Group 1", "keywords": ["kw1"]}]},
+      "people_also_ask": [{"question": "Q1?", "answer": "Answer 1", "source": "Google PAA", "related_questions": ["Related 1"]}],
+      "serp_analysis": {"featured_snippet": "Snippet", "knowledge_panel": "Panel", "top_stories": ["Story 1"], "videos": ["Video 1"], "images": ["Image 1"], "maps": "Map", "total_results": 1000000, "paid_ads": 4, "organic_results_count": 10},
+      "schema_markup": {"article": "", "faq": "", "product": "", "how_to": "", "organization": "", "complete_json": ""},
+      "content_quality": {"uniqueness": 85, "comprehensiveness": 80, "engagement": 75, "readability_score": 78, "seo_friendliness": 82, "overall_grade": "B+", "improvement_suggestions": ["Add more examples"]},
+      "entities": {"people": ["Person 1"], "organizations": ["Company 1"], "locations": ["Location 1"], "products": ["Product 1"], "dates": ["Date 1"], "concepts": ["Concept 1"]}
     }
   `;
 
@@ -486,7 +565,7 @@ const generatePowerInsights = async (keyword, serpData) => {
       ],
       model: 'llama-3.3-70b-versatile',
       temperature: 0.3,
-      max_tokens: 12000,
+      max_tokens: 16000,
     });
     const endTime = Date.now();
     logger.info(`⏱️ GROQ Response Time: ${(endTime - startTime) / 1000}s`);
@@ -505,7 +584,7 @@ const generatePowerInsights = async (keyword, serpData) => {
   }
 };
 
-// ---------- 7. SerpAPI Service (with PAA extraction) ----------
+// ---------- 7. SerpAPI Service ----------
 const fetchSerp = async (keyword) => {
   logger.info(`🔍 Fetching SERP for: "${keyword}"`);
   
@@ -515,7 +594,7 @@ const fetchSerp = async (keyword) => {
       params: {
         q: keyword,
         api_key: process.env.SERPAPI_KEY,
-        num: 5,
+        num: 10,
         location: 'Pakistan'
       },
       timeout: 15000
@@ -545,21 +624,27 @@ app.get('/api/health', async (req, res) => {
   
   res.json({
     status: 'OK',
-    message: 'RankForge Power Edition V6 is Live!',
-    version: '6.0.0',
+    message: 'RankForge ULTIMATE Edition V7 is Live!',
+    version: '7.0.0',
     timestamp: new Date().toISOString(),
     mongodb: dbStatus,
     groq: process.env.GROQ_API_KEY ? 'Configured' : 'Missing',
     serpapi: process.env.SERPAPI_KEY ? 'Configured' : 'Missing',
     features: [
-      'Real-time Competitor Analysis',
-      'NLP Keywords',
-      'People Also Ask',
-      'SERP Analysis',
-      'Schema Markup',
-      'Internal Links',
-      'Content Quality Score',
-      'Entity Recognition'
+      'AI Search Intent Analysis',
+      'Full SERP Analysis (Top 10)',
+      'NLP & Entity Extraction',
+      'Topical Authority Map',
+      'Internal Link Suggestions',
+      'EEAT Score',
+      'Featured Snippet Opportunities',
+      'AI Overview Optimization',
+      'People Also Ask Expansion',
+      'Content Brief with H2/H3 Outline',
+      'Schema Generator',
+      'Keyword Cannibalization Check',
+      'Brand Mention & Backlink Gap Analysis',
+      'Content Freshness Suggestions'
     ],
     stats: {
       total_reports: totalReports,
@@ -593,15 +678,15 @@ app.post('/api/generate', async (req, res) => {
     const newReport = new Report({ keyword, status: 'pending' });
     await newReport.save();
 
-    res.json({ reportId: newReport._id, cached: false, message: 'Processing power analysis...' });
+    res.json({ reportId: newReport._id, cached: false, message: 'Processing ULTIMATE analysis...' });
 
     (async () => {
       const startTime = Date.now();
       try {
-        logger.info(`🔄 Starting Power Analysis for: "${keyword}"`);
+        logger.info(`🔄 Starting ULTIMATE Analysis for: "${keyword}"`);
         
         const serpData = await fetchSerp(keyword);
-        const insights = await generatePowerInsights(keyword, serpData);
+        const insights = await generateUltimateInsights(keyword, serpData);
         const endTime = Date.now();
         
         await Report.findByIdAndUpdate(newReport._id, {
@@ -609,7 +694,7 @@ app.post('/api/generate', async (req, res) => {
           data: insights,
           processingTime: (endTime - startTime) / 1000
         });
-        logger.info(`✅ Power Analysis Completed: "${keyword}" in ${(endTime - startTime) / 1000}s`);
+        logger.info(`✅ ULTIMATE Analysis Completed: "${keyword}" in ${(endTime - startTime) / 1000}s`);
       } catch (error) {
         logger.error(`❌ Failed: "${keyword}"`, error.message);
         await Report.findByIdAndUpdate(newReport._id, { 
@@ -698,9 +783,9 @@ cron.schedule('0 0 * * *', async () => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   logger.info('='.repeat(60));
-  logger.info(`🚀 Power Server V6 running on port ${PORT}`);
+  logger.info(`🚀 ULTIMATE Server V7 running on port ${PORT}`);
   logger.info(`📊 Model: GROQ: llama-3.3-70b-versatile`);
-  logger.info(`⚡ Features: Real-time Competitor, NLP, PAA, SERP, Schema, Internal Links, Quality Score, Entities`);
+  logger.info(`⚡ 14 ULTIMATE Features: Intent, SERP, NLP, Topical Map, Internal Links, EEAT, Featured Snippet, AI Overview, PAA, Content Brief, Schema, Cannibalization, Brand Backlink, Freshness`);
   logger.info(`📈 Health Check: /api/health`);
   logger.info(`📊 Analytics: /api/analytics`);
   logger.info('='.repeat(60));
