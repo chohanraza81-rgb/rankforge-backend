@@ -52,7 +52,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// Rate Limiting
+// ---------- Rate Limiting (FIXED for Railway) ----------
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -60,13 +60,16 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   trustProxy: true,
-  validate: { trustProxy: false },
+  validate: { 
+    trustProxy: false,
+    xForwardedForHeader: false
+  },
 });
 app.use('/api/', limiter);
 
 // ---------- 3. Startup Logging ----------
 logger.info('='.repeat(60));
-logger.info('🚀 RankForge ULTIMATE Edition V7 - 4 FAQ ENFORCED');
+logger.info('🚀 RankForge ULTIMATE POWER EDITION V7');
 logger.info('='.repeat(60));
 logger.info(`🔍 GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✅ Set' : '❌ Missing'}`);
 logger.info(`🔍 SERPAPI_KEY: ${process.env.SERPAPI_KEY ? '✅ Set' : '❌ Missing'}`);
@@ -83,7 +86,7 @@ mongoose.connect(process.env.MONGODB_URI, {
     process.exit(1);
   });
 
-// ---------- 5. MongoDB Schema (ULTIMATE Edition) ----------
+// ---------- 5. MongoDB Schema (ULTIMATE POWER EDITION) ----------
 const ReportSchema = new mongoose.Schema({
   keyword: { type: String, required: true, index: true },
   status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
@@ -303,7 +306,7 @@ ReportSchema.index({ status: 1 });
 
 const Report = mongoose.model('Report', ReportSchema);
 
-// ---------- 6. DATA SANITIZER ----------
+// ---------- 6. DATA SANITIZER (With 4 FAQ Enforcement) ----------
 const sanitizeData = (rawData) => {
   const defaultData = {
     keyword_intent: 'Informational',
@@ -400,7 +403,6 @@ const sanitizeData = (rawData) => {
 
       if (key === 'faq_questions') {
         if (Array.isArray(rawData[key])) {
-          // ✅ ENSURE 4 FAQ - STRICT ENFORCEMENT
           const existing = rawData[key].filter(q => typeof q === 'string' && q.trim().length > 0);
           const keyword = rawData.keyword || 'this topic';
           const defaultFAQs = [
@@ -494,7 +496,6 @@ const generateUltimateInsights = async (keyword, serpData) => {
 
   logger.info(`🤖 GROQ Analysis for: "${keyword}"`);
 
-  // PROMPT WITH 4 FAQ ENFORCEMENT
   const prompt = `
     SEO Expert. Analyze "${keyword}". Return ONLY valid JSON.
 
@@ -663,11 +664,9 @@ const generateUltimateInsights = async (keyword, serpData) => {
     const cleanJson = text.replace(/```json|```/g, '').trim();
     const parsedData = JSON.parse(cleanJson);
     
-    // ✅ Pass keyword to sanitizer for FAQ enforcement
     parsedData.keyword = keyword;
     const sanitizedData = sanitizeData(parsedData);
     
-    // ✅ Final check: Ensure 4 FAQ
     if (!sanitizedData.faq_questions || sanitizedData.faq_questions.length < 4) {
       sanitizedData.faq_questions = [
         `What is the best ${keyword}?`,
@@ -680,7 +679,6 @@ const generateUltimateInsights = async (keyword, serpData) => {
     return sanitizedData;
   } catch (error) {
     logger.error('❌ GROQ Error:', error.message);
-    // Return safe default with 4 FAQ
     return sanitizeData({
       keyword: keyword,
       faq_questions: [
@@ -730,7 +728,7 @@ app.get('/api/health', async (req, res) => {
   
   res.json({
     status: 'OK',
-    message: 'RankForge ULTIMATE Edition V7 - 4 FAQ ENFORCED',
+    message: 'RankForge ULTIMATE POWER EDITION V7',
     version: '7.0.0',
     timestamp: new Date().toISOString(),
     mongodb: dbStatus,
@@ -879,9 +877,9 @@ cron.schedule('0 0 * * *', async () => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   logger.info('='.repeat(60));
-  logger.info(`🚀 ULTIMATE Server V7 running on port ${PORT}`);
+  logger.info(`🚀 ULTIMATE POWER EDITION V7 running on port ${PORT}`);
   logger.info(`📊 Model: GROQ: llama-3.3-70b-versatile`);
-  logger.info(`⚡ 14 Features + 4 FAQ ENFORCED`);
+  logger.info(`⚡ 14 Features + 4 FAQ ENFORCED + X-Forwarded-For FIXED`);
   logger.info(`📈 Health Check: /api/health`);
   logger.info(`📊 Analytics: /api/analytics`);
   logger.info('='.repeat(60));
